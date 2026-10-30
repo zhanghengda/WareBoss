@@ -1,0 +1,109 @@
+import * as XLSX from './vendor/xlsx.mjs';
+
+export const TEMPLATE_HEADERS = ['系列', '型号', '规格', '期初', '入库', '出库', '结存', '备注'];
+const asText = value => value === undefined || value === null ? '' : String(value).trim();
+const asNumber = value => {
+  if (value === undefined || value === null || value === '') return 0;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : NaN;
+};
+const col = number => XLSX.utils.encode_col(number);
+const cell = (address, value, style) => ({ [address]: { t: typeof value === 'number' ? 'n' : 's', v: value, s: style } });
+
+function periodFromSheet(sheet, fallback) {
+  const title = asText(sheet.A1?.v);
+  const range = asText(sheet.A2?.v);
+  return range || title || fallback;
+}
+
+export function parseMonthlyReport(buffer) {
+  const workbook = XLSX.read(buffer, { type:'array', cellDates:true });
+  const found = workbook.SheetNames.map(name => ({ name, sheet:workbook.Sheets[name] })).find(({ sheet }) => {
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+    return rows.some(row => TEMPLATE_HEADERS.every((header, index) => asText(row[index]) === header));
+  });
+  if (!found) throw new Error('未找到“系列、型号、规格、期初、入库、出库、结存、备注”这 8 个模板字段。');
+  const rows = XLSX.utils.sheet_to_json(found.sheet, { header:1, defval:'', raw:true });
+  const headerIndex = rows.findIndex(row => TEMPLATE_HEADERS.every((header, index) => asText(row[index]) === header));
+  const products = [], movements = [], errors = [], seen = new Set();
+  let series = '';
+  rows.slice(headerIndex + 1).forEach((row, index) => {
+    const rowNumber = headerIndex + index + 2;
+    const seriesValue = asText(row[0]);
+    const sku = asText(row[1]);
+    if (seriesValue && seriesValue !== '小计' && seriesValue !== '合计') series = seriesValue;
+    if (!sku) return;
+    const uniqueKey = `${series}\u0000${sku}\u0000${asText(row[2])}`;
+    if (seen.has(uniqueKey)) { errors.push(`第 ${rowNumber} 行：同一系列、型号和规格重复。`); return; }
+    const opening = asNumber(row[3]), inbound = asNumber(row[4]), outbound = asNumber(row[5]), closing = asNumber(row[6]);
+    if ([opening, inbound, outbound, closing].some(Number.isNaN)) { errors.push(`第 ${rowNumber} 行：期初、入库、出库、结存必须是数字。`); return; }
+    if (Math.abs(opening + inbound - outbound - closing) > 0.000001) { errors.push(`第 ${rowNumber} 行：期初 + 入库 - 出库 与结存不一致。`); return; }
+    seen.add(uniqueKey);
+    const productId = `P-EXCEL-${String(index + 1).padStart(4, '0')}`;
+    const name = sku;
+    products.push({ id:productId, name, sku, category:series || '未分组', spec:asText(row[2]), unit:'件', openingStock:opening, stock:closing, safeStock:0, cost:0, price:0, location:'', remark:asText(row[7]) });
+    const period = periodFromSheet(found.sheet, found.name);
+    if (inbound) movements.push({ id:`RK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'in', productId, productName:name, quantity:inbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
+    if (outbound) movements.push({ id:`CK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'out', productId, productName:name, quantity:outbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
+  });
+  if (errors.length) throw new Error(`模板校验未通过：\n${errors.slice(0, 6).join('\n')}${errors.length > 6 ? `\n另有 ${errors.length - 6} 项问题。` : ''}`);
+  if (!products.length) throw new Error('模板中没有可导入的商品行。');
+  return { state:{ products, suppliers:[], customers:[], movements }, summary:{ sheetName:found.name, productCount:products.length, inboundCount:movements.filter(item => item.type === 'in').length, outboundCount:movements.filter(item => item.type === 'out').length } };
+}
+
+function movementsFor(product, movements) {
+  return movements.filter(item => item.productId === product.id);
+}
+
+export function createMonthlyReport(data) {
+  const products = [...(data.products || [])].sort((left, right) => `${left.category || ''}\u0000${left.sku || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || ''}`, 'zh-CN'));
+  const movements = data.movements || [];
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth() + 1;
+  const ws = {};
+  const border = { top:{style:'thin',color:{rgb:'95A5A6'}}, bottom:{style:'thin',color:{rgb:'95A5A6'}}, left:{style:'thin',color:{rgb:'95A5A6'}}, right:{style:'thin',color:{rgb:'95A5A6'}} };
+  const titleStyle = { font:{bold:true,sz:16,color:{rgb:'163C47'}}, alignment:{horizontal:'center',vertical:'center'} };
+  const subtitleStyle = { font:{sz:10,color:{rgb:'52656D'}}, alignment:{horizontal:'center',vertical:'center'} };
+  const headerStyle = { font:{bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1B6B73'}}, alignment:{horizontal:'center',vertical:'center'}, border };
+  const bodyStyle = { alignment:{vertical:'center'}, border };
+  const numberStyle = { ...bodyStyle, alignment:{horizontal:'right',vertical:'center'} };
+  const subtotalStyle = { font:{bold:true}, fill:{fgColor:{rgb:'DDEEEF'}}, alignment:{vertical:'center'}, border };
+  Object.assign(ws, cell('A1', `赢之诺${year}年${month}月报表`, titleStyle), cell('A2', `单位：件                            ${year}.${month}.1—${year}.${month}.${new Date(year, month, 0).getDate()}`, subtitleStyle));
+  TEMPLATE_HEADERS.forEach((header, index) => Object.assign(ws, cell(`${col(index)}3`, header, headerStyle)));
+  ws['!merges'] = [XLSX.utils.decode_range('A1:H1'), XLSX.utils.decode_range('A2:H2')];
+  ws['!cols'] = [{wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:10}, {wch:10}, {wch:10}, {wch:22}];
+  ws['!rows'] = [{hpt:28}, {hpt:21}, {hpt:22}];
+  let row = 4;
+  const subtotalRows = [];
+  const groups = new Map();
+  products.forEach(product => { const key = product.category || '未分组'; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(product); });
+  for (const [series, items] of groups) {
+    const first = row;
+    for (const product of items) {
+      const rows = movementsFor(product, movements);
+      const inbound = rows.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+      const outbound = rows.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+      const closing = Number(product.stock || 0);
+      const opening = Number.isFinite(Number(product.openingStock)) && Math.abs(Number(product.openingStock) + inbound - outbound - closing) < 0.000001 ? Number(product.openingStock) : closing - inbound + outbound;
+      Object.assign(ws, cell(`A${row}`, row === first ? series : '', bodyStyle), cell(`B${row}`, product.sku || product.name || '', bodyStyle), cell(`C${row}`, product.spec || '', bodyStyle), cell(`D${row}`, opening, numberStyle), cell(`E${row}`, inbound, numberStyle), cell(`F${row}`, outbound, numberStyle), cell(`G${row}`, closing, numberStyle), cell(`H${row}`, product.remark || '', bodyStyle));
+      ws[`F${row}`] = { t:'n', v:outbound, f:`D${row}+E${row}-G${row}`, s:numberStyle };
+      row += 1;
+    }
+    if (row - first > 1) ws['!merges'].push(XLSX.utils.decode_range(`A${first}:A${row - 1}`));
+    const subtotalRow = row;
+    subtotalRows.push(subtotalRow);
+    Object.assign(ws, cell(`A${row}`, '小计', subtotalStyle), cell(`D${row}`, 0, subtotalStyle), cell(`E${row}`, 0, subtotalStyle), cell(`F${row}`, 0, subtotalStyle), cell(`G${row}`, 0, subtotalStyle));
+    ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:`SUM(${letter}${first}:${letter}${row - 1})`, s:subtotalStyle }; });
+    ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
+    row += 1;
+  }
+  Object.assign(ws, cell(`A${row}`, '合计', subtotalStyle), cell(`D${row}`, 0, subtotalStyle), cell(`E${row}`, 0, subtotalStyle), cell(`F${row}`, 0, subtotalStyle), cell(`G${row}`, 0, subtotalStyle));
+  ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:subtotalRows.length ? subtotalRows.map(item => `${letter}${item}`).join('+') : '0', s:subtotalStyle }; });
+  ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
+  Object.assign(ws, cell(`A${row + 1}`, `上期结存：${products.reduce((sum, product) => sum + Number(product.openingStock || 0), 0)}`), cell(`G${row + 1}`, '制表人：WareBoss'), cell(`G${row + 2}`, `日期：${year}.${month}.${new Date(year, month, 0).getDate()}`));
+  ws['!ref'] = `A1:H${row + 2}`;
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, ws, `${year}.${month - 1}报表`);
+  workbook.Workbook = { CalcPr:{ calcMode:'auto' } };
+  return XLSX.write(workbook, { bookType:'xlsx', type:'array', cellStyles:true });
+}

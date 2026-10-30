@@ -60,8 +60,8 @@ export function createLocalApi() {
     const payload = JSON.parse(options.body || '{}');
     if (url === '/products') {
       if (!payload.name || !payload.sku) throw new Error('请填写商品名称和编码');
-      if (data.products.some(item => item.sku === payload.sku)) throw new Error('该商品编码已存在');
-      const product = { id:`P${Date.now().toString().slice(-6)}`, name:payload.name, sku:payload.sku, category:payload.category || '其他', unit:payload.unit || '件', stock:Number(payload.stock) || 0, safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配' };
+      if (data.products.some(item => item.sku === payload.sku && (item.category || '') === (payload.category || '其他') && (item.spec || '') === (payload.spec || ''))) throw new Error('该系列、商品编码和规格已存在');
+      const product = { id:`P${Date.now().toString().slice(-6)}`, name:payload.name, sku:payload.sku, category:payload.category || '其他', spec:payload.spec || '', unit:payload.unit || '件', openingStock:Number(payload.openingStock ?? payload.stock) || 0, stock:Number(payload.stock) || 0, safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配', remark:payload.remark || '' };
       data.products.unshift(product); await save(data); return product;
     }
     if (url === '/movements') {

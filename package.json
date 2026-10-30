@@ -10,7 +10,8 @@
     "build:static": "node scripts/prepare-static.js"
   },
   "dependencies": {
-    "vue": "^3.5.44"
+    "vue": "^3.5.44",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=18"

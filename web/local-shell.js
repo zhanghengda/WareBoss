@@ -1,4 +1,5 @@
 import { createLocalApi } from './local-store.js';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -12,6 +13,7 @@ function injectStyle() {
     .wb-login-card{width:min(100%,380px);padding:34px 30px;border:1px solid rgba(255,255,255,.2);border-radius:22px;background:rgba(7,32,42,.86);box-shadow:0 28px 90px rgba(0,0,0,.42);backdrop-filter:blur(12px)}
     .wb-login-brand{display:flex;align-items:center;gap:11px;margin-bottom:24px;font-size:23px;font-weight:800}.wb-login-brand b{color:#61d6cd}.wb-login-brand span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#1ba79d;color:white}
     .wb-login-card h1{font-size:22px;margin:0 0 8px}.wb-login-card p{margin:0 0 22px;color:#a8c7ce;line-height:1.65;font-size:14px}.wb-login-card label{display:grid;gap:7px;margin-top:14px;font-size:13px;font-weight:700}.wb-login-card input{box-sizing:border-box;width:100%;border:1px solid #2d6170;border-radius:10px;padding:12px;color:#ecfbff;background:#0a2530;font:inherit;outline:none}.wb-login-card input:focus{border-color:#63d7cf;box-shadow:0 0 0 3px rgba(99,215,207,.15)}.wb-login-card button{width:100%;margin-top:22px;border:0;border-radius:10px;padding:12px;background:#20a69b;color:white;font:700 15px inherit;cursor:pointer}.wb-login-error{min-height:19px;margin:10px 0 -11px;color:#ffaaa2;font-size:13px}.wb-account-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8e7ea;border-radius:9px;padding:7px 9px;background:white;color:#31505a;font-size:12px}.wb-account-chip button{border:0;border-left:1px solid #d8e7ea;background:transparent;color:#49717b;padding-left:8px;cursor:pointer;font:inherit}.wb-clear-overlay{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:rgba(2,16,22,.66)}.wb-clear-dialog{width:min(100%,400px);border-radius:18px;background:white;padding:26px;color:#1d3942;box-shadow:0 25px 70px rgba(0,0,0,.3)}.wb-clear-dialog h2{margin:0 0 10px;font-size:20px}.wb-clear-dialog p{line-height:1.65;color:#5d7178}.wb-clear-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.wb-clear-actions button{border:0;border-radius:9px;padding:10px 14px;font:700 14px inherit;cursor:pointer}.wb-clear-actions .cancel{background:#eaf0f1;color:#42606a}.wb-clear-actions .confirm{background:#d95252;color:white}@media(max-width:640px){.wb-login-card{padding:28px 22px}.wb-account-chip{position:fixed;right:12px;top:10px;z-index:20}.wb-account-chip span{display:none}}
+    .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
   `;
   document.head.append(style);
 }
@@ -69,6 +71,50 @@ function showClearDialog() {
   document.body.append(overlay);
 }
 
+function downloadExcel() {
+  createLocalApi().exportState().then(backup => {
+    const bytes = createMonthlyReport(backup.data);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    link.download = `wareboss-${new Date().toISOString().slice(0, 10)}-月度库存报表.xlsx`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }).catch(() => window.alert('Excel 导出失败，请稍后重试。'));
+}
+
+function showExcelImportDialog(candidate) {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>确认导入 Excel 月报？</h2><p>已识别工作表“${candidate.summary.sheetName}”：${candidate.summary.productCount} 个商品、${candidate.summary.inboundCount} 条入库汇总、${candidate.summary.outboundCount} 条出库汇总。导入会覆盖本机当前全部业务数据。</p><div class="wb-clear-actions"><button class="cancel" type="button">返回</button><button class="confirm" type="button">确认导入</button></div></section>`;
+  const close = () => overlay.remove();
+  overlay.querySelector('.cancel').addEventListener('click', close);
+  overlay.querySelector('.confirm').addEventListener('click', async event => {
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = '导入中…';
+    try { await createLocalApi().importState(candidate.state); location.reload(); } catch (_) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认导入'; }
+  });
+  document.body.append(overlay);
+}
+
+function installExcelActions() {
+  const grid = document.querySelector('.backup-page .backup-grid');
+  if (!grid || document.getElementById('wb-excel-card')) return;
+  const card = document.createElement('article');
+  card.id = 'wb-excel-card';
+  card.className = 'panel backup-card wb-excel-card';
+  card.innerHTML = `<h3>Excel 月报模板</h3><p>使用“系列、型号、规格、期初、入库、出库、结存、备注”模板导入或导出。</p><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/><button class="primary" type="button">导出 Excel 月报</button><button class="secondary import-button" type="button">导入 Excel 月报</button>`;
+  const [fileInput, exportButton, importButton] = card.querySelectorAll('input,button');
+  exportButton.addEventListener('click', downloadExcel);
+  importButton.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    try { showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
+  });
+  grid.prepend(card);
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .import-button');
   const backupInput = document.querySelector('.backup-page input[type="file"]');
@@ -81,6 +127,7 @@ function installPageActions() {
     clearButton.dataset.localBound = 'true';
     clearButton.addEventListener('click', event => { event.preventDefault(); event.stopImmediatePropagation(); showClearDialog(); }, true);
   }
+  installExcelActions();
 }
 
 export function installLocalShell() {

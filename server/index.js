@@ -23,7 +23,7 @@ function staticFile(req, res) {
   const isVueVendor = requested === '/vendor/vue.js';
   const file = isVueVendor ? path.join(root, 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js') : path.normalize(path.join(webRoot, requested));
   if ((!isVueVendor && !file.startsWith(webRoot)) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return json(res, 404, {message:'页面不存在'});
-  const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.svg':'image/svg+xml','.webmanifest':'application/manifest+json; charset=utf-8'};
+  const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.mjs':'application/javascript; charset=utf-8','.svg':'image/svg+xml','.webmanifest':'application/manifest+json; charset=utf-8'};
   res.writeHead(200, {'Content-Type': types[path.extname(file)] || 'application/octet-stream'});
   fs.createReadStream(file).pipe(res);
 }
