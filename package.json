@@ -4,8 +4,8 @@
   "private": true,
   "description": "WareBoss 物流仓库进销存系统",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "start": "node server/local-server.js",
+    "dev": "node --watch server/local-server.js",
     "backup": "node server/backup.js",
     "build:static": "node scripts/prepare-static.js"
   },
