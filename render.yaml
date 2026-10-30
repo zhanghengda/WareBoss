@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: wareboss-demo
+    runtime: node
+    plan: free
+    buildCommand: ""
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false

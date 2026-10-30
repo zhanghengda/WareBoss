@@ -1,0 +1,2 @@
+/* Prevent accidental loss of an in-progress inventory document. */
+.discard-overlay{z-index:30}.danger-button{border:0;background:#d85c55;color:#fff;border-radius:7px;font-weight:600;cursor:pointer}.danger-button:hover{background:#be4944}
