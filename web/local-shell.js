@@ -97,6 +97,39 @@ function showExcelImportDialog(candidate) {
   document.body.append(overlay);
 }
 
+function chooseInitializationFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.remove();
+    if (!file) return;
+    try { showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
+  }, { once:true });
+  input.click();
+}
+
+function showInitializeDialog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>初始化本机数据</h2><p>选择系统兼容的 Excel 月报后，将建立商品、期初、入库、出库和结存数据。文件会先校验，确认导入前不会修改当前数据。</p><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">选择 Excel 月报</button></div></section>';
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', () => { overlay.remove(); chooseInitializationFile(); });
+  document.body.append(overlay);
+}
+
+function installMoreInitialization() {
+  const sheet = document.querySelector('.more-sheet');
+  if (!sheet || document.getElementById('wb-init-menu')) return;
+  const button = document.createElement('button');
+  button.id = 'wb-init-menu';
+  button.type = 'button';
+  button.innerHTML = '<i>⇅</i><span>初始化数据</span><b>›</b>';
+  button.addEventListener('click', showInitializeDialog);
+  sheet.prepend(button);
+}
+
 function installExcelActions() {
   const grid = document.querySelector('.backup-page .backup-grid');
   if (!grid || document.getElementById('wb-excel-card')) return;
@@ -162,6 +195,7 @@ function installPageActions() {
   }
   installExcelActions();
   installHomeFlowStats();
+  installMoreInitialization();
 }
 
 export function installLocalShell() {
