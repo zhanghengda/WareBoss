@@ -1,0 +1,16 @@
+@media(max-width:640px){
+  html,body{touch-action:pan-y;overscroll-behavior-y:none}
+  .primary:hover{transform:none;box-shadow:0 4px 10px #0d776925}
+  .mobile-nav{height:86px!important;padding:8px 8px max(9px,env(safe-area-inset-bottom))!important;border-radius:22px 22px 0 0}
+  .mobile-nav button{flex:1;min-width:0!important;padding:0!important;font-size:11px!important;font-weight:600!important;letter-spacing:.1px}
+  .mobile-nav button i{width:43px!important;height:43px!important;border-radius:14px!important;margin-bottom:1px!important}
+  .mobile-nav button i svg{width:25px!important;height:25px!important;stroke-width:1.75!important}
+  .mobile-nav button.active i{background:linear-gradient(145deg,#10a38f,#087365)!important;box-shadow:0 7px 15px #0d776940!important}
+  .mobile-nav button.active{color:#087365!important}
+  .mobile-nav button span{line-height:18px!important}
+  .more-overlay{position:fixed;z-index:12;inset:0;background:#112c274d;display:flex;align-items:flex-end}
+  .more-sheet{width:100%;padding:8px 18px calc(22px + env(safe-area-inset-bottom));background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -12px 35px #102b2340}
+  .sheet-handle{width:40px;height:4px;border-radius:4px;background:#d9e2e2;margin:4px auto 18px}
+  .more-sheet h3{font-size:16px;margin:0 4px 12px}.more-sheet button{border:0;background:#f6f9f9;width:100%;min-height:57px;margin:8px 0;border-radius:13px;display:flex;align-items:center;gap:13px;padding:0 15px;color:#263b41;font-weight:650;text-align:left}
+  .more-sheet button i{width:35px;height:35px;border-radius:10px;background:#e5f5f0;color:#087365;display:grid;place-items:center}.more-sheet button i svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.more-sheet button span{flex:1}.more-sheet button b{font-size:25px;font-weight:400;color:#95a4a7}
+}
