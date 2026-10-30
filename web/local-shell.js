@@ -14,6 +14,7 @@ function injectStyle() {
     .wb-login-brand{display:flex;align-items:center;gap:11px;margin-bottom:24px;font-size:23px;font-weight:800}.wb-login-brand b{color:#61d6cd}.wb-login-brand span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#1ba79d;color:white}
     .wb-login-card h1{font-size:22px;margin:0 0 8px}.wb-login-card p{margin:0 0 22px;color:#a8c7ce;line-height:1.65;font-size:14px}.wb-login-card label{display:grid;gap:7px;margin-top:14px;font-size:13px;font-weight:700}.wb-login-card input{box-sizing:border-box;width:100%;border:1px solid #2d6170;border-radius:10px;padding:12px;color:#ecfbff;background:#0a2530;font:inherit;outline:none}.wb-login-card input:focus{border-color:#63d7cf;box-shadow:0 0 0 3px rgba(99,215,207,.15)}.wb-login-card button{width:100%;margin-top:22px;border:0;border-radius:10px;padding:12px;background:#20a69b;color:white;font:700 15px inherit;cursor:pointer}.wb-login-error{min-height:19px;margin:10px 0 -11px;color:#ffaaa2;font-size:13px}.wb-account-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8e7ea;border-radius:9px;padding:7px 9px;background:white;color:#31505a;font-size:12px}.wb-account-chip button{border:0;border-left:1px solid #d8e7ea;background:transparent;color:#49717b;padding-left:8px;cursor:pointer;font:inherit}.wb-clear-overlay{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:rgba(2,16,22,.66)}.wb-clear-dialog{width:min(100%,400px);border-radius:18px;background:white;padding:26px;color:#1d3942;box-shadow:0 25px 70px rgba(0,0,0,.3)}.wb-clear-dialog h2{margin:0 0 10px;font-size:20px}.wb-clear-dialog p{line-height:1.65;color:#5d7178}.wb-clear-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.wb-clear-actions button{border:0;border-radius:9px;padding:10px 14px;font:700 14px inherit;cursor:pointer}.wb-clear-actions .cancel{background:#eaf0f1;color:#42606a}.wb-clear-actions .confirm{background:#d95252;color:white}@media(max-width:640px){.wb-login-card{padding:28px 22px}.wb-account-chip{position:fixed;right:12px;top:10px;z-index:20}.wb-account-chip span{display:none}}
     .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
+    .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
   `;
   document.head.append(style);
 }
@@ -115,6 +116,38 @@ function installExcelActions() {
   grid.prepend(card);
 }
 
+let latestFlowKey = '';
+let loadingFlowStats = false;
+function installHomeFlowStats() {
+  const dashboard = document.querySelector('.dashboard');
+  const welcome = dashboard?.querySelector('.welcome');
+  if (!dashboard || !welcome) return;
+  let card = document.getElementById('wb-flow-summary');
+  if (!card) {
+    card = document.createElement('section');
+    card.id = 'wb-flow-summary';
+    card.className = 'wb-flow-summary';
+    card.innerHTML = '<h3>库存汇总</h3><table><thead><tr><th>入库</th><th>出库</th><th>结存</th></tr></thead><tbody><tr><td class="in">0</td><td class="out">0</td><td class="stock">0</td></tr></tbody></table>';
+    welcome.insertAdjacentElement('afterend', card);
+  }
+  if (loadingFlowStats) return;
+  loadingFlowStats = true;
+  createLocalApi().exportState().then(backup => {
+    const data = backup.data;
+    const inbound = data.movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const outbound = data.movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const stock = data.products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
+    const key = `${inbound}/${outbound}/${stock}`;
+    if (key !== latestFlowKey) {
+      latestFlowKey = key;
+      const cells = card.querySelectorAll('tbody td');
+      cells[0].textContent = inbound;
+      cells[1].textContent = outbound;
+      cells[2].textContent = stock;
+    }
+  }).finally(() => { loadingFlowStats = false; });
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .import-button');
   const backupInput = document.querySelector('.backup-page input[type="file"]');
@@ -128,6 +161,7 @@ function installPageActions() {
     clearButton.addEventListener('click', event => { event.preventDefault(); event.stopImmediatePropagation(); showClearDialog(); }, true);
   }
   installExcelActions();
+  installHomeFlowStats();
 }
 
 export function installLocalShell() {
