@@ -82,5 +82,6 @@ export function createLocalApi() {
     if (!data || !['products','suppliers','customers','movements'].every(key => Array.isArray(data[key]))) throw new Error('备份文件格式不正确');
     await save({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
   };
+  api.clearState = async () => { await save(emptyState()); };
   return api;
 }
