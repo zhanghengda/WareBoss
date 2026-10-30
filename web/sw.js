@@ -1,5 +1,5 @@
 const CACHE = 'wareboss-local-v1';
-const ASSETS = ['/', '/index.html', '/app.js', '/local-store.js', '/vendor/vue.js', '/styles.css', '/refined.css', '/mobile-ui.css', '/form-safety.css', '/logo.svg', '/manifest.webmanifest'];
+const ASSETS = ['./', './index.html', './app.js', './local-store.js', './vendor/vue.js', './styles.css', './refined.css', './mobile-ui.css', './form-safety.css', './local-mode.css', './logo.svg', './manifest.webmanifest'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', event => {

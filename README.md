@@ -12,6 +12,10 @@ npm start
 
 打开 `http://localhost:3000`。手机访问时，可将项目部署到任意静态 HTTPS 站点后打开；数据仍只写入该手机浏览器。支持 PWA 的手机浏览器可通过“添加到主屏幕”安装成独立应用，并在首次加载后离线使用。
 
+## GitHub Pages 托管
+
+本项目已包含 `.github/workflows/deploy-pages.yml`。将整个项目推送到 GitHub 后，在仓库 **Settings → Pages → Build and deployment** 中选择 **GitHub Actions**；推送到 `main` 分支即会自动发布。GitHub Pages 只托管页面文件，不保存业务数据；每一台手机都有独立的本机数据和备份文件。
+
 ## 本地数据与备份
 
 - 数据写入：手机本机 IndexedDB

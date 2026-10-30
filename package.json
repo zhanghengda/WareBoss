@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "backup": "node server/backup.js"
+    "backup": "node server/backup.js",
+    "build:static": "node scripts/prepare-static.js"
   },
   "dependencies": {
-    "pg": "^8.13.1",
     "vue": "^3.5.44"
   },
   "engines": {

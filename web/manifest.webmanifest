@@ -1,9 +1,9 @@
 {
   "name": "WareBoss 本地仓库",
   "short_name": "WareBoss",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f6f8f8",
   "theme_color": "#0d7769",
-  "icons": [{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [{ "src": "./logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }
