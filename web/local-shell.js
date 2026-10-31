@@ -81,15 +81,28 @@ function showClearDialog() {
   document.body.append(overlay);
 }
 
-function downloadExcel() {
+function downloadExcel(customerId = '') {
   createLocalApi().exportState().then(backup => {
-    const bytes = createMonthlyReport(backup.data);
+    const customer = backup.data.customers.find(item => item.id === customerId);
+    const data = customer ? { ...backup.data, customers:[customer], products:backup.data.products.filter(item => item.customerId === customer.id), movements:backup.data.movements.filter(item => item.customerId === customer.id) } : backup.data;
+    if (customer && !data.products.length) throw new Error('该客户暂无库存数据可导出');
+    const bytes = createMonthlyReport(data, { snapshotNote:customer ? `客户：${customer.name}` : '' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    link.download = `wareboss-${new Date().toISOString().slice(0, 10)}-月度库存报表.xlsx`;
+    link.download = `wareboss-${customer ? `${customer.name}-` : ''}${new Date().toISOString().slice(0, 10)}-月度库存报表.xlsx`;
     link.click();
     URL.revokeObjectURL(link.href);
   }).catch(() => window.alert('Excel 导出失败，请稍后重试。'));
+}
+
+async function showCustomerExportDialog() {
+  const partners = await createLocalApi()('/partners');
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>导出客户月报</h2><p>请选择需要导出的客户。Excel 仅包含该客户的库存和出入库明细。</p><select class="customer" style="width:100%;margin-top:12px;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(item => `<option value="${textForHtml(item.id)}">${textForHtml(item.name)}</option>`).join('')}</select><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">导出 Excel</button></div></section>`;
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', () => { const customerId = overlay.querySelector('.customer').value; if (!customerId) { window.alert('请选择客户。'); return; } downloadExcel(customerId); overlay.remove(); });
+  document.body.append(overlay);
 }
 
 function downloadReportSnapshot(snapshot) {
@@ -287,7 +300,7 @@ function installExcelActions() {
   card.className = 'panel backup-card wb-excel-card';
   card.innerHTML = `<h3>Excel 月报模板</h3><p>使用“系列、型号、规格、期初、入库、出库、结存、备注”模板导入或导出。</p><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/><button class="primary" type="button">导出 Excel 月报</button><button class="secondary import-button" type="button">导入 Excel 月报</button>`;
   const [fileInput, exportButton, importButton] = card.querySelectorAll('input,button');
-  exportButton.addEventListener('click', downloadExcel);
+  exportButton.addEventListener('click', () => showCustomerExportDialog().catch(error => window.alert(error.message || '无法打开客户列表。')));
   importButton.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
