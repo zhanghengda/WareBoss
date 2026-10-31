@@ -16,6 +16,7 @@ function injectStyle() {
     .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
     .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
+    .wb-report-preview{width:min(1080px,100%);max-height:min(86vh,820px);overflow:auto;border-radius:18px;background:#f6f9f9;color:#243d45;box-shadow:0 25px 70px rgba(0,0,0,.35)}.wb-preview-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:#155a65;color:white}.wb-preview-head h2{margin:0;font-size:19px}.wb-preview-head p{margin:5px 0 0;color:#cae5e6;font-size:12px}.wb-preview-close{border:0;border-radius:8px;background:#ffffff20;color:white;padding:8px 11px;font-size:18px;cursor:pointer}.wb-preview-body{padding:20px}.wb-preview-note{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#e8f3f1;color:#48636a;font-size:13px;line-height:1.5}.wb-preview-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.wb-preview-metrics div{padding:13px;border:1px solid #dbe8e8;border-radius:10px;background:white}.wb-preview-metrics span{display:block;color:#71858b;font-size:12px}.wb-preview-metrics b{display:block;margin-top:5px;font-size:21px;color:#1c5961}.wb-preview-section{margin-top:18px;background:white;border:1px solid #dce9e9;border-radius:11px;overflow:hidden}.wb-preview-section h3{margin:0;padding:13px 15px;font-size:14px;background:#eef7f6}.wb-preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.wb-preview-table th{padding:10px;background:#1b6b73;color:white;text-align:center}.wb-preview-table td{padding:9px 10px;border-bottom:1px solid #e8eeee;vertical-align:top}.wb-preview-table tr:last-child td{border-bottom:0}.wb-preview-table td.num{text-align:right;font-weight:700}.wb-preview-table td.note{min-width:160px;white-space:normal;color:#5a6f75}.wb-preview-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}.wb-preview-actions button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:600 14px inherit}@media(max-width:640px){.wb-preview-body{padding:13px}.wb-preview-head{padding:15px}.wb-preview-metrics{grid-template-columns:repeat(2,1fr)}.wb-preview-table{font-size:11px}.wb-preview-table th,.wb-preview-table td{padding:8px}.wb-report-preview{max-height:90vh}}
   `;
   document.head.append(style);
 }
@@ -94,13 +95,43 @@ function downloadReportSnapshot(snapshot) {
 }
 
 const textForHtml = value => String(value || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+function reportRows(snapshot) {
+  const products = [...(snapshot.data?.products || [])].sort((left, right) => `${left.category || ''}\u0000${left.sku || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || ''}`, 'zh-CN'));
+  const movements = snapshot.data?.movements || [];
+  return products.map(product => {
+    const items = movements.filter(item => item.productId === product.id);
+    const inbound = items.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const outbound = items.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const closing = Number(product.stock || 0);
+    const opening = Number.isFinite(Number(product.openingStock)) && Math.abs(Number(product.openingStock) + inbound - outbound - closing) < 0.000001 ? Number(product.openingStock) : closing - inbound + outbound;
+    return { product, inbound, outbound, opening, closing };
+  });
+}
+
+function showReportPreview(snapshot) {
+  const rows = reportRows(snapshot);
+  const movements = snapshot.data?.movements || [];
+  const inbound = rows.reduce((sum, row) => sum + row.inbound, 0);
+  const outbound = rows.reduce((sum, row) => sum + row.outbound, 0);
+  const stock = rows.reduce((sum, row) => sum + row.closing, 0);
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = `<section class="wb-report-preview" role="dialog" aria-modal="true"><header class="wb-preview-head"><div><h2>月报在线查看</h2><p>${new Date(snapshot.createdAt).toLocaleString('zh-CN', { hour12:false })} · 快照编号 ${textForHtml(snapshot.id)}</p></div><button class="wb-preview-close" type="button" aria-label="关闭">×</button></header><div class="wb-preview-body"><p class="wb-preview-note">备注：${textForHtml(snapshot.note || '未填写备注')}</p><div class="wb-preview-metrics"><div><span>商品种类</span><b>${rows.length}</b></div><div><span>入库数量</span><b>${inbound}</b></div><div><span>出库数量</span><b>${outbound}</b></div><div><span>当前结存</span><b>${stock}</b></div></div><div class="wb-preview-section"><h3>月报主表</h3><div class="table-wrap"><table class="wb-preview-table"><thead><tr><th>系列</th><th>型号</th><th>规格</th><th>期初</th><th>入库</th><th>出库</th><th>结存</th><th>备注</th></tr></thead><tbody>${rows.map(({product, opening, inbound:inQty, outbound:outQty, closing}) => `<tr><td>${textForHtml(product.category)}</td><td>${textForHtml(product.sku || product.name)}</td><td>${textForHtml(product.spec)}</td><td class="num">${opening}</td><td class="num">${inQty}</td><td class="num">${outQty}</td><td class="num">${closing}</td><td class="note">${textForHtml(product.remark || '—')}</td></tr>`).join('')}</tbody></table></div></div><div class="wb-preview-section"><h3>出入库明细</h3><div class="table-wrap"><table class="wb-preview-table"><thead><tr><th>时间</th><th>类型</th><th>商品</th><th>数量</th><th>往来单位</th><th>经办人</th><th>备注</th></tr></thead><tbody>${movements.map(item => `<tr><td>${textForHtml(item.createdAt)}</td><td>${item.type === 'in' ? '入库' : '出库'}</td><td>${textForHtml(item.productName)}</td><td class="num">${Number(item.quantity || 0)}</td><td>${textForHtml(item.partner)}</td><td>${textForHtml(item.operator)}</td><td class="note">${textForHtml(item.note || '—')}</td></tr>`).join('') || '<tr><td colspan="7">暂无出入库明细</td></tr>'}</tbody></table></div></div><div class="wb-preview-actions"><button class="secondary close" type="button">关闭</button><button class="primary export" type="button">导出 Excel</button></div></div></section>`;
+  const close = () => overlay.remove();
+  overlay.querySelector('.wb-preview-close').addEventListener('click', close);
+  overlay.querySelector('.close').addEventListener('click', close);
+  overlay.querySelector('.export').addEventListener('click', () => downloadReportSnapshot(snapshot));
+  document.body.append(overlay);
+}
+
 function renderReportSnapshots(card) {
   createLocalApi().listReportSnapshots().then(reports => {
     const list = card.querySelector('.wb-report-list');
     if (!reports.length) { list.innerHTML = '<span>尚未生成月报快照。</span>'; return; }
-    list.innerHTML = reports.map(report => `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })} 的月报快照</b><span>${textForHtml(report.note || '未填写备注')}</span><button type="button" class="secondary export">导出 Excel</button><button type="button" class="remove">删除</button></div>`).join('');
+    list.innerHTML = reports.map(report => `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })} 的月报快照</b><span>${textForHtml(report.note || '未填写备注')} · ${report.data?.products?.length || 0} 个商品</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button><button type="button" class="remove">删除</button></div>`).join('');
     list.querySelectorAll('.wb-report-row').forEach(row => {
       const report = reports.find(item => item.id === row.dataset.reportId);
+      row.querySelector('.view').addEventListener('click', () => showReportPreview(report));
       row.querySelector('.export').addEventListener('click', () => downloadReportSnapshot(report));
       row.querySelector('.remove').addEventListener('click', () => showDeleteReportDialog(report, card));
     });
