@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.4';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.4';
+import { createLocalApi } from './local-store.js?v=20261031.5';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.5';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -21,6 +21,7 @@ function injectStyle() {
     .wb-home-customers{margin:18px 0;padding:16px}.wb-home-customers h3{margin:0 0 8px;font-size:15px}.wb-home-customer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:12px 0;border-top:1px solid #edf2f2}.wb-home-customer:first-of-type{border-top:0}.wb-home-customer b{display:block;font-size:14px}.wb-home-customer span{display:block;margin-top:4px;font-size:12px;color:#6c8187}.wb-home-customer button{margin-left:6px;border:0;border-radius:7px;padding:7px 8px;background:#eaf7f4;color:#137a6c;font:700 12px inherit;cursor:pointer}.wb-home-customer button.flow{background:#f1eeff;color:#6e5ac0}@media(max-width:640px){.wb-home-customers{margin:12px 0;padding:13px}.wb-home-customer{padding:10px 0}.wb-home-customer button{padding:6px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
     .wb-report-preview{width:min(1080px,100%);max-height:min(86vh,820px);overflow:auto;border-radius:18px;background:#f6f9f9;color:#243d45;box-shadow:0 25px 70px rgba(0,0,0,.35)}.wb-preview-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:#155a65;color:white}.wb-preview-head h2{margin:0;font-size:19px}.wb-preview-head p{margin:5px 0 0;color:#cae5e6;font-size:12px}.wb-preview-close{border:0;border-radius:8px;background:#ffffff20;color:white;padding:8px 11px;font-size:18px;cursor:pointer}.wb-preview-body{padding:20px}.wb-preview-note{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#e8f3f1;color:#48636a;font-size:13px;line-height:1.5}.wb-preview-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.wb-preview-metrics div{padding:13px;border:1px solid #dbe8e8;border-radius:10px;background:white}.wb-preview-metrics span{display:block;color:#71858b;font-size:12px}.wb-preview-metrics b{display:block;margin-top:5px;font-size:21px;color:#1c5961}.wb-preview-section{margin-top:18px;background:white;border:1px solid #dce9e9;border-radius:11px;overflow:hidden}.wb-preview-section h3{margin:0;padding:13px 15px;font-size:14px;background:#eef7f6}.wb-preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.wb-preview-table th{padding:10px;background:#1b6b73;color:white;text-align:center}.wb-preview-table td{padding:9px 10px;border-bottom:1px solid #e8eeee;vertical-align:top}.wb-preview-table tr:last-child td{border-bottom:0}.wb-preview-table td.num{text-align:right;font-weight:700}.wb-preview-table td.note{min-width:160px;white-space:normal;color:#5a6f75}.wb-preview-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}.wb-preview-actions button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:600 14px inherit}@media(max-width:640px){.wb-preview-body{padding:13px}.wb-preview-head{padding:15px}.wb-preview-metrics{grid-template-columns:repeat(2,1fr)}.wb-preview-table{font-size:11px}.wb-preview-table th,.wb-preview-table td{padding:8px}.wb-report-preview{max-height:90vh}}
+    .dashboard>.grid{display:none!important}.wb-more-functions{grid-column:1/-1;padding:8px!important}.wb-more-functions h3{margin:8px 8px 12px;font-size:16px;color:#254b54}.wb-more-function{display:flex;align-items:center;width:100%;gap:12px;padding:14px 11px;border:0;border-top:1px solid #edf2f2;background:transparent;color:#23464e;font:inherit;text-align:left;cursor:pointer}.wb-more-function:first-of-type{border-top:0}.wb-more-function i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#e5f5f0;color:#147d70;font-size:18px;font-style:normal}.wb-more-function span{flex:1}.wb-more-function b{display:block;font-size:14px}.wb-more-function small{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-more-function em{color:#8da1a6;font-size:20px;font-style:normal}.wb-alert-card{grid-column:1/-1}.wb-alert-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #eaf0f0}.wb-alert-head h3{margin:0;font-size:16px;color:#244851}.wb-alert-list{margin-top:2px}.wb-alert-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #edf2f2}.wb-alert-item:last-child{border-bottom:0}.wb-alert-item i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff1ed;color:#d26b4f;font-style:normal}.wb-alert-item b{display:block;font-size:14px;color:#294b53}.wb-alert-item span{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-alert-item strong{color:#bf674b;font-size:13px;text-align:right}.wb-alert-item strong small{display:block;margin-top:3px;color:#89999d;font-size:11px;font-weight:500}@media(max-width:640px){.wb-more-functions{padding:5px!important}.wb-more-function{padding:13px 8px}.wb-alert-head{align-items:flex-start}.wb-alert-head .wb-customer-filter{max-width:150px}.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto;gap:8px}.wb-alert-item i{width:30px;height:30px}.wb-alert-item b{font-size:13px}.wb-alert-item span{font-size:11px}}
   `;
   document.head.append(style);
 }
@@ -461,13 +462,69 @@ function installDashboardQuickActions() {
   welcome.insertAdjacentElement('afterend', card);
 }
 
+function goToPage(name) {
+  [...document.querySelectorAll('.side nav button')].find(button => button.textContent.includes(name))?.click();
+}
+
+function installDirectMoreNavigation() {
+  const button = document.querySelector('.mobile-nav button:last-child');
+  if (!button || button.dataset.wbDirectMore) return;
+  button.dataset.wbDirectMore = 'true';
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    goToPage('更多功能');
+  }, true);
+}
+
+function installMoreFunctionList() {
+  const grid = document.querySelector('.partner-grid');
+  if (!grid || document.querySelector('header h1')?.textContent.trim() !== '更多功能' || document.getElementById('wb-more-functions')) return;
+  const card = document.createElement('article');
+  card.id = 'wb-more-functions';
+  card.className = 'panel wb-more-functions';
+  card.innerHTML = `<h3>功能列表</h3>
+    <button class="wb-more-function" data-action="backup"><i>⇩</i><span><b>数据备份</b><small>备份、恢复与清理本机数据</small></span><em>›</em></button>
+    <button class="wb-more-function" data-action="report"><i>▤</i><span><b>生成月报</b><small>按客户生成并保存月报快照</small></span><em>›</em></button>
+    <button class="wb-more-function" data-action="customers"><i>♧</i><span><b>客户与供应商</b><small>查看客户统计、管理往来单位</small></span><em>›</em></button>
+    <button class="wb-more-function" data-action="initialize"><i>↕</i><span><b>初始化数据</b><small>导入模板前可先清理测试数据</small></span><em>›</em></button>
+    <button class="wb-more-function" data-action="logout"><i>↪</i><span><b>退出登录</b><small>退出当前账号，不会删除库存数据</small></span><em>›</em></button>`;
+  card.querySelector('[data-action="backup"]').addEventListener('click', () => goToPage('数据备份'));
+  card.querySelector('[data-action="report"]').addEventListener('click', () => showCreateReportDialog(null));
+  card.querySelector('[data-action="customers"]').addEventListener('click', () => grid.querySelector('.panel:not(#wb-more-functions)')?.scrollIntoView({ behavior:'smooth', block:'start' }));
+  card.querySelector('[data-action="initialize"]').addEventListener('click', showInitializeDialog);
+  card.querySelector('[data-action="logout"]').addEventListener('click', logout);
+  grid.prepend(card);
+}
+
+let loadingAlerts = false;
+function installCustomerAlerts() {
+  const grid = document.querySelector('.partner-grid');
+  if (!grid || document.querySelector('header h1')?.textContent.trim() !== '库存预警' || document.getElementById('wb-alert-card') || loadingAlerts) return;
+  loadingAlerts = true;
+  Promise.all([createLocalApi()('/partners'), createLocalApi()('/products')]).then(([partners, products]) => {
+    if (!document.contains(grid) || document.querySelector('header h1')?.textContent.trim() !== '库存预警') return;
+    [...grid.children].forEach(child => { child.hidden = true; });
+    const card = document.createElement('article');
+    card.id = 'wb-alert-card';
+    card.className = 'panel wb-alert-card';
+    card.innerHTML = `<div class="wb-alert-head"><div><h3>库存预警</h3><small>库存小于或等于安全库存的商品</small></div><select class="wb-customer-filter" aria-label="选择客户"><option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></div><div class="wb-alert-list"></div>`;
+    const select = card.querySelector('select');
+    const list = card.querySelector('.wb-alert-list');
+    const render = () => {
+      const rows = products.filter(product => (!select.value || product.customerId === select.value) && Number(product.stock || 0) <= Number(product.safeStock || 0));
+      list.innerHTML = rows.map(product => `<div class="wb-alert-item"><i>!</i><div><b>${textForHtml(product.name)}</b><span>${textForHtml(product.customerName || '未指定客户')} · ${textForHtml(product.location || '未设置库位')}</span></div><strong>${Number(product.stock || 0)} ${textForHtml(product.unit || '')}<small>安全库存 ${Number(product.safeStock || 0)}</small></strong></div>`).join('') || '<p class="empty">该客户暂无库存预警。</p>';
+    };
+    select.addEventListener('change', render);
+    render();
+    grid.prepend(card);
+  }).finally(() => { loadingAlerts = false; });
+}
+
 function openCustomerMovements(customerId) {
   movementCustomerFilter = customerId;
-  const openMore = document.querySelector('.mobile-nav button:last-child');
-  if (openMore) {
-    openMore.click();
-    setTimeout(() => [...document.querySelectorAll('.more-sheet button')].find(button => button.textContent.includes('出入库流水'))?.click(), 30);
-  } else document.querySelectorAll('.side nav button')[4]?.click();
+  const movementButton = document.querySelector('.mobile-nav button:nth-child(3)') || [...document.querySelectorAll('.side nav button')].find(button => button.textContent.includes('出入库流水'));
+  movementButton?.click();
 }
 
 let loadingHomeCustomerList = false;
@@ -535,7 +592,7 @@ function openCustomerDashboard(customerId) {
 
 function installCustomerStatistics() {
   const grid = document.querySelector('.partner-grid');
-  if (!grid || document.getElementById('wb-customer-stats')) return;
+  if (!grid || document.querySelector('header h1')?.textContent.trim() !== '更多功能' || document.getElementById('wb-customer-stats')) return;
   Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]).then(([partners, backup]) => {
     if (!document.contains(grid)) return;
     const card = document.createElement('article');
@@ -648,6 +705,9 @@ function installPageActions() {
   installHomeFlowStats();
   installHomeCustomerList();
   installCustomerProductFilter();
+  installDirectMoreNavigation();
+  installMoreFunctionList();
+  installCustomerAlerts();
   installCustomerStatistics();
   installMovementCustomerFilter();
   installProductRemarks();
