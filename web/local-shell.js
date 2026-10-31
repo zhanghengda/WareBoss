@@ -18,6 +18,7 @@ function injectStyle() {
     .wb-quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:18px 0}.wb-quick-action{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #dceaea;border-radius:13px;background:#fff;color:#254951;cursor:pointer;text-align:left;box-shadow:0 7px 18px rgba(16,58,67,.04)}.wb-quick-action i{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#e5f5f0;color:#117d70;font-size:21px;font-style:normal}.wb-quick-action.out i{background:#f1edff;color:#735cc0}.wb-quick-action b{display:block;font-size:15px}.wb-quick-action span{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-batch-dialog{width:min(100%,650px);max-height:90vh;overflow:auto}.wb-batch-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-batch-dialog input,.wb-batch-dialog select{width:100%;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-batch-items{margin-top:17px}.wb-batch-items h3{margin:0 0 8px;font-size:14px}.wb-batch-row{display:grid;grid-template-columns:minmax(0,1.5fr) 78px minmax(0,1fr) 36px;gap:8px;margin-top:8px;align-items:center}.wb-batch-row .remove{border:0;background:#fff0ef;color:#b95a56;border-radius:7px;height:36px;font-size:18px;cursor:pointer}.wb-add-line{margin-top:10px;border:1px dashed #82b9b1;background:#f3fbf9;color:#167869;border-radius:8px;padding:9px 11px;font-weight:700;cursor:pointer}.wb-batch-note{font-size:12px!important;font-weight:500!important;color:#6f8388!important}@media(max-width:640px){.wb-quick-actions{margin:12px 0;gap:9px}.wb-quick-action{padding:13px 11px;gap:9px}.wb-quick-action i{width:33px;height:33px;font-size:18px}.wb-quick-action b{font-size:13px}.wb-quick-action span{font-size:11px}.wb-batch-row{grid-template-columns:minmax(0,1fr) 66px 34px}.wb-batch-row input.note{display:none}}
     .wb-customer-filter{max-width:190px;border:1px solid #cbdadd;border-radius:7px;padding:6px 9px;background:#fff;color:#38545d;font:600 12px inherit}@media(max-width:640px){.wb-customer-filter{max-width:138px;font-size:11px}}
     .wb-dashboard-scope{display:grid;gap:3px;color:#d9f4ef;font-size:11px;font-weight:700}.wb-dashboard-scope .wb-customer-filter{min-width:145px;max-width:190px}.wb-customer-stats{grid-column:1/-1}.wb-customer-stat-row{display:grid;grid-template-columns:minmax(0,1fr) 62px 62px 62px auto;align-items:center;gap:8px;padding:12px 0;border-top:1px solid #edf2f2}.wb-customer-stat-row:first-of-type{border-top:0}.wb-customer-stat-row b{font-size:14px}.wb-customer-stat-row span{font-size:12px;color:#667b81;text-align:center}.wb-customer-stat-row button{border:1px solid #b9ddd6;border-radius:7px;background:#eff9f6;color:#13796b;padding:6px 8px;font:700 12px inherit;cursor:pointer}.wb-movement-customer{display:block!important;color:#16786b!important;font-weight:700}@media(max-width:640px){.wb-dashboard-scope .wb-customer-filter{min-width:125px}.wb-customer-stat-row{grid-template-columns:minmax(0,1fr) 47px 47px 47px auto;gap:4px}.wb-customer-stat-row span{font-size:10px}.wb-customer-stat-row button{padding:5px;font-size:11px}}
+    .wb-home-customers{margin:18px 0;padding:16px}.wb-home-customers h3{margin:0 0 8px;font-size:15px}.wb-home-customer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:12px 0;border-top:1px solid #edf2f2}.wb-home-customer:first-of-type{border-top:0}.wb-home-customer b{display:block;font-size:14px}.wb-home-customer span{display:block;margin-top:4px;font-size:12px;color:#6c8187}.wb-home-customer button{margin-left:6px;border:0;border-radius:7px;padding:7px 8px;background:#eaf7f4;color:#137a6c;font:700 12px inherit;cursor:pointer}.wb-home-customer button.flow{background:#f1eeff;color:#6e5ac0}@media(max-width:640px){.wb-home-customers{margin:12px 0;padding:13px}.wb-home-customer{padding:10px 0}.wb-home-customer button{padding:6px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
     .wb-report-preview{width:min(1080px,100%);max-height:min(86vh,820px);overflow:auto;border-radius:18px;background:#f6f9f9;color:#243d45;box-shadow:0 25px 70px rgba(0,0,0,.35)}.wb-preview-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:#155a65;color:white}.wb-preview-head h2{margin:0;font-size:19px}.wb-preview-head p{margin:5px 0 0;color:#cae5e6;font-size:12px}.wb-preview-close{border:0;border-radius:8px;background:#ffffff20;color:white;padding:8px 11px;font-size:18px;cursor:pointer}.wb-preview-body{padding:20px}.wb-preview-note{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#e8f3f1;color:#48636a;font-size:13px;line-height:1.5}.wb-preview-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.wb-preview-metrics div{padding:13px;border:1px solid #dbe8e8;border-radius:10px;background:white}.wb-preview-metrics span{display:block;color:#71858b;font-size:12px}.wb-preview-metrics b{display:block;margin-top:5px;font-size:21px;color:#1c5961}.wb-preview-section{margin-top:18px;background:white;border:1px solid #dce9e9;border-radius:11px;overflow:hidden}.wb-preview-section h3{margin:0;padding:13px 15px;font-size:14px;background:#eef7f6}.wb-preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.wb-preview-table th{padding:10px;background:#1b6b73;color:white;text-align:center}.wb-preview-table td{padding:9px 10px;border-bottom:1px solid #e8eeee;vertical-align:top}.wb-preview-table tr:last-child td{border-bottom:0}.wb-preview-table td.num{text-align:right;font-weight:700}.wb-preview-table td.note{min-width:160px;white-space:normal;color:#5a6f75}.wb-preview-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}.wb-preview-actions button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:600 14px inherit}@media(max-width:640px){.wb-preview-body{padding:13px}.wb-preview-head{padding:15px}.wb-preview-metrics{grid-template-columns:repeat(2,1fr)}.wb-preview-table{font-size:11px}.wb-preview-table th,.wb-preview-table td{padding:8px}.wb-report-preview{max-height:90vh}}
   `;
@@ -346,14 +347,13 @@ function installDashboardCustomerScope() {
   if (!dashboard || !welcome || document.getElementById('wb-dashboard-customer')) return;
   createLocalApi()('/partners').then(partners => {
     if (!partners.customers.length) return;
-    dashboardCustomerId ||= partners.customers[0].id;
     const scope = document.createElement('label');
     scope.className = 'wb-dashboard-scope';
-    scope.textContent = '当前统计客户';
+    scope.textContent = '统计范围';
     const select = document.createElement('select');
     select.id = 'wb-dashboard-customer';
     select.className = 'wb-customer-filter';
-    select.innerHTML = partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('');
+    select.innerHTML = `<option value="">全部客户汇总</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
     select.value = dashboardCustomerId;
     select.addEventListener('change', () => { dashboardCustomerId = select.value; latestFlowKey = ''; installHomeFlowStats(); refreshDashboardCustomerStats(dashboard); });
     scope.append(select);
@@ -362,9 +362,8 @@ function installDashboardCustomerScope() {
   });
 }
 function refreshDashboardCustomerStats(dashboard) {
-  if (!dashboardCustomerId) return;
   createLocalApi().exportState().then(backup => {
-    const data = backup.data, products = data.products.filter(item => item.customerId === dashboardCustomerId), movements = data.movements.filter(item => item.customerId === dashboardCustomerId);
+    const data = backup.data, products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId), movements = data.movements.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
     const stats = dashboard.querySelectorAll('.stats article strong');
     if (stats.length >= 4) { stats[0].textContent = products.length; stats[1].textContent = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); stats[2].textContent = `¥${movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; stats[3].textContent = `¥${movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; }
   });
@@ -458,6 +457,31 @@ function installDashboardQuickActions() {
   card.querySelector('.in').addEventListener('click', () => showBatchMovementDialog('in').catch(error => window.alert(error.message || '无法打开入库单。')));
   card.querySelector('.out').addEventListener('click', () => showBatchMovementDialog('out').catch(error => window.alert(error.message || '无法打开出库单。')));
   welcome.insertAdjacentElement('afterend', card);
+}
+
+function openCustomerMovements(customerId) {
+  movementCustomerFilter = customerId;
+  const openMore = document.querySelector('.mobile-nav button:last-child');
+  if (openMore) {
+    openMore.click();
+    setTimeout(() => [...document.querySelectorAll('.more-sheet button')].find(button => button.textContent.includes('出入库流水'))?.click(), 30);
+  } else document.querySelectorAll('.side nav button')[4]?.click();
+}
+
+function installHomeCustomerList() {
+  const dashboard = document.querySelector('.dashboard');
+  const flow = document.getElementById('wb-flow-summary');
+  if (!dashboard || !flow || document.getElementById('wb-home-customers')) return;
+  Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]).then(([partners, backup]) => {
+    if (!document.contains(flow)) return;
+    const card = document.createElement('section');
+    card.id = 'wb-home-customers'; card.className = 'panel wb-home-customers';
+    const data = backup.data;
+    card.innerHTML = `<h3>客户统计</h3>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = data.movements.filter(item => item.customerId === customer.id); const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-home-customer"><div><b>${textForHtml(customer.name)}</b><span>商品 ${products.length} · 库存 ${stock} · 入库 ${inbound} · 出库 ${outbound}</span></div><div><button data-stat="${textForHtml(customer.id)}">看统计</button><button class="flow" data-flow="${textForHtml(customer.id)}">看流水</button></div></div>`; }).join('') || '<p class="empty">请先建立客户并关联库存。</p>'}`;
+    card.querySelectorAll('button[data-stat]').forEach(button => button.addEventListener('click', () => openCustomerDashboard(button.dataset.stat)));
+    card.querySelectorAll('button[data-flow]').forEach(button => button.addEventListener('click', () => openCustomerMovements(button.dataset.flow)));
+    flow.insertAdjacentElement('afterend', card);
+  });
 }
 
 let productCustomerFilter = '';
@@ -610,6 +634,7 @@ function installPageActions() {
   installDashboardCustomerScope();
   installDashboardQuickActions();
   installHomeFlowStats();
+  installHomeCustomerList();
   installCustomerProductFilter();
   installCustomerStatistics();
   installMovementCustomerFilter();
