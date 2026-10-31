@@ -133,6 +133,28 @@ export function createLocalApi() {
     if (!data || !['products','suppliers','customers','movements'].every(key => Array.isArray(data[key]))) throw new Error('备份文件格式不正确');
     await save({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements, reports:Array.isArray(data.reports) ? data.reports : [] });
   };
+  api.importCustomerState = async (backup, customerId) => {
+    const incoming = backup?.data || backup;
+    if (!incoming || !['products','suppliers','customers','movements'].every(key => Array.isArray(incoming[key]))) throw new Error('导入文件格式不正确');
+    const data = await state();
+    const customer = data.customers.find(item => item.id === customerId);
+    if (!customer) throw new Error('请选择库存归属客户');
+    const stamp = Date.now().toString();
+    const productIds = new Map();
+    const products = incoming.products.map((item, index) => {
+      const id = `IMP-P${stamp}-${index + 1}`;
+      productIds.set(item.id, id);
+      return { ...item, id, customerId:customer.id, customerName:customer.name };
+    });
+    const movements = incoming.movements.map((item, index) => ({ ...item, id:`IMP-M${stamp}-${index + 1}`, productId:productIds.get(item.productId) || item.productId, customerId:customer.id, customerName:customer.name }));
+    data.products = data.products.filter(item => item.customerId !== customer.id);
+    data.movements = data.movements.filter(item => item.customerId !== customer.id);
+    data.suppliers = [...incoming.suppliers, ...data.suppliers].filter((item, index, list) => item?.name && list.findIndex(other => other.name === item.name) === index);
+    data.products.unshift(...products);
+    data.movements.unshift(...movements);
+    await save(data);
+    return { productCount:products.length, movementCount:movements.length };
+  };
   api.listReportSnapshots = async () => clone((await state()).reports);
   api.createReportSnapshot = async (note, snapshotData = null) => {
     const data = await state();

@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.8';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.8';
+import { createLocalApi } from './local-store.js?v=20261031.9';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.9';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -240,13 +240,22 @@ function assignCustomerOwnership(state, customer) {
   return data;
 }
 
-async function showExcelImportDialog(candidate) {
+async function showExcelImportDialog(candidate, fixedCustomer = null) {
   const partnerState = await createLocalApi()('/partners');
   const options = partnerState.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('');
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
   overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>确认导入 Excel 月报？</h2><p>已识别工作表“${candidate.summary.sheetName}”：${candidate.summary.productCount} 个商品、${candidate.summary.inboundCount} 条入库汇总、${candidate.summary.outboundCount} 条出库汇总。导入后，这批库存将全部归属到所选客户。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">库存归属客户<select class="wb-import-customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">${options ? '请选择已有客户' : '暂无客户，请填写新客户'}</option>${options}</select></label><label style="display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d">或新建客户<input class="wb-import-customer-name" placeholder="填写客户名称后将自动创建" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">返回</button><button class="confirm" type="button">确认导入</button></div></section>`;
   const close = () => overlay.remove();
+  if (fixedCustomer) {
+    const customerSelect = overlay.querySelector('.wb-import-customer');
+    const customerName = overlay.querySelector('.wb-import-customer-name');
+    customerSelect.value = fixedCustomer.id;
+    customerSelect.disabled = true;
+    customerName.disabled = true;
+    customerName.placeholder = `已指定：${fixedCustomer.name}`;
+    overlay.querySelector('p')?.insertAdjacentText('beforeend', ` 本次将覆盖“${fixedCustomer.name}”现有数据，其他客户不受影响。`);
+  }
   overlay.querySelector('.cancel').addEventListener('click', close);
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
@@ -254,17 +263,17 @@ async function showExcelImportDialog(candidate) {
     const customerId = overlay.querySelector('.wb-import-customer').value;
     const customerName = overlay.querySelector('.wb-import-customer-name').value.trim();
     try {
-      let customer = partnerState.customers.find(item => item.id === customerId);
+      let customer = fixedCustomer || partnerState.customers.find(item => item.id === customerId);
       if (customerName) customer = await createLocalApi()('/partners', { method:'POST', body:JSON.stringify({ type:'customer', name:customerName }) });
       if (!customer) throw new Error('请先选择或填写库存归属客户');
-      await createLocalApi().importState(assignCustomerOwnership(candidate.state, customer));
+      await createLocalApi().importCustomerState(assignCustomerOwnership(candidate.state, customer), customer.id);
       location.reload();
     } catch (error) { window.alert(error.message || '导入失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认导入'; }
   });
   document.body.append(overlay);
 }
 
-function chooseInitializationFile() {
+function chooseInitializationFile(fixedCustomer = null) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -272,18 +281,44 @@ function chooseInitializationFile() {
     const file = input.files?.[0];
     input.remove();
     if (!file) return;
-    try { await showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
+    try { await showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer()), fixedCustomer); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
   }, { once:true });
   input.click();
 }
 
-function showInitializeDialog() {
+function showInitializationFileDialog() {
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
   overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>初始化本机数据</h2><p>选择系统兼容的 Excel 月报后，将建立商品、期初、入库、出库和结存数据。文件会先校验，确认导入前不会修改当前数据。</p><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">选择 Excel 月报</button></div></section>';
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.confirm').addEventListener('click', () => { overlay.remove(); chooseInitializationFile(); });
   document.body.append(overlay);
+}
+
+async function showInitializeDialog() {
+  try {
+    const partners = await createLocalApi()('/partners');
+    const overlay = document.createElement('div');
+    overlay.className = 'wb-clear-overlay';
+    overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>初始化客户数据</h2><p>请先选择库存归属客户。稍后导入的 Excel 只会替换该客户的商品和出入库流水，其他客户的数据不会改变。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">归属客户<select class="wb-init-customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label><label style="display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d">或新建客户<input class="wb-init-customer-name" placeholder="填写客户名称后自动创建" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">下一步：选择 Excel</button></div></section>`;
+    overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.confirm').addEventListener('click', async event => {
+      const customerId = overlay.querySelector('.wb-init-customer').value;
+      const customerName = overlay.querySelector('.wb-init-customer-name').value.trim();
+      event.currentTarget.disabled = true;
+      try {
+        let customer = partners.customers.find(item => item.id === customerId);
+        if (customerName) customer = await createLocalApi()('/partners', { method:'POST', body:JSON.stringify({ type:'customer', name:customerName }) });
+        if (!customer) throw new Error('请先选择或填写归属客户');
+        overlay.remove();
+        chooseInitializationFile(customer);
+      } catch (error) {
+        window.alert(error.message || '无法选择客户，请重试。');
+        event.currentTarget.disabled = false;
+      }
+    });
+    document.body.append(overlay);
+  } catch (error) { window.alert(error.message || '无法读取客户列表，请重试。'); }
 }
 
 function installMoreInitialization() {
