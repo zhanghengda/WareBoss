@@ -1,6 +1,7 @@
 import * as XLSX from './vendor/xlsx.mjs';
 
 export const TEMPLATE_HEADERS = ['系列', '型号', '规格', '期初', '入库', '出库', '结存', '备注'];
+export const DETAIL_HEADERS = ['单据编号', '业务类型', '系列', '型号', '规格', '数量', '往来单位', '经办人', '时间', '备注'];
 const asText = value => value === undefined || value === null ? '' : String(value).trim();
 const asNumber = value => {
   if (value === undefined || value === null || value === '') return 0;
@@ -16,6 +17,34 @@ function periodFromSheet(sheet, fallback) {
   return range || title || fallback;
 }
 
+function parseDetailSheet(workbook, products, flowTotals, errors) {
+  const sheet = workbook.Sheets['出入库明细'];
+  if (!sheet) return null;
+  const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'', raw:true });
+  const headerIndex = rows.findIndex(row => DETAIL_HEADERS.every((header, index) => asText(row[index]) === header));
+  if (headerIndex < 0) { errors.push('“出入库明细”工作表的字段不正确。'); return []; }
+  const productIndex = new Map(products.map(product => [`${product.category}\u0000${product.sku}\u0000${product.spec}`, product]));
+  const details = [], ids = new Set();
+  rows.slice(headerIndex + 1).forEach((row, index) => {
+    const rowNumber = headerIndex + index + 2;
+    const typeText = asText(row[1]);
+    if (!typeText) return;
+    const type = ['入库', '采购入库', 'in'].includes(typeText) ? 'in' : ['出库', '销售出库', 'out'].includes(typeText) ? 'out' : '';
+    const series = asText(row[2]), sku = asText(row[3]), spec = asText(row[4]), quantity = asNumber(row[5]);
+    const product = productIndex.get(`${series}\u0000${sku}\u0000${spec}`);
+    const id = asText(row[0]) || `DETAIL-${String(index + 1).padStart(4, '0')}`;
+    if (!type || !product || !Number.isFinite(quantity) || quantity <= 0 || ids.has(id)) { errors.push(`明细第 ${rowNumber} 行：单据、业务类型、商品或数量无效。`); return; }
+    ids.add(id);
+    details.push({ id, type, productId:product.id, productName:product.name, quantity, amount:0, partner:asText(row[6]) || '未填写', operator:asText(row[7]) || 'Excel 导入', createdAt:asText(row[8]) || 'Excel 明细导入', note:asText(row[9]) });
+  });
+  products.forEach(product => {
+    const expected = flowTotals.get(product.id) || { inbound:0, outbound:0 };
+    const actual = details.filter(item => item.productId === product.id).reduce((total, item) => ({ inbound:total.inbound + (item.type === 'in' ? item.quantity : 0), outbound:total.outbound + (item.type === 'out' ? item.quantity : 0) }), { inbound:0, outbound:0 });
+    if (Math.abs(expected.inbound - actual.inbound) > 0.000001 || Math.abs(expected.outbound - actual.outbound) > 0.000001) errors.push(`“${product.sku}”的出入库明细与月报汇总不一致。`);
+  });
+  return details;
+}
+
 export function parseMonthlyReport(buffer) {
   const workbook = XLSX.read(buffer, { type:'array', cellDates:true });
   const found = workbook.SheetNames.map(name => ({ name, sheet:workbook.Sheets[name] })).find(({ sheet }) => {
@@ -25,7 +54,7 @@ export function parseMonthlyReport(buffer) {
   if (!found) throw new Error('未找到“系列、型号、规格、期初、入库、出库、结存、备注”这 8 个模板字段。');
   const rows = XLSX.utils.sheet_to_json(found.sheet, { header:1, defval:'', raw:true });
   const headerIndex = rows.findIndex(row => TEMPLATE_HEADERS.every((header, index) => asText(row[index]) === header));
-  const products = [], movements = [], errors = [], seen = new Set();
+  const products = [], summarizedMovements = [], errors = [], seen = new Set(), flowTotals = new Map();
   let series = '';
   rows.slice(headerIndex + 1).forEach((row, index) => {
     const rowNumber = headerIndex + index + 2;
@@ -42,10 +71,13 @@ export function parseMonthlyReport(buffer) {
     const productId = `P-EXCEL-${String(index + 1).padStart(4, '0')}`;
     const name = sku;
     products.push({ id:productId, name, sku, category:series || '未分组', spec:asText(row[2]), unit:'件', openingStock:opening, stock:closing, safeStock:0, cost:0, price:0, location:'', remark:asText(row[7]) });
+    flowTotals.set(productId, { inbound, outbound });
     const period = periodFromSheet(found.sheet, found.name);
-    if (inbound) movements.push({ id:`RK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'in', productId, productName:name, quantity:inbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
-    if (outbound) movements.push({ id:`CK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'out', productId, productName:name, quantity:outbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
+    if (inbound) summarizedMovements.push({ id:`RK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'in', productId, productName:name, quantity:inbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
+    if (outbound) summarizedMovements.push({ id:`CK-EXCEL-${String(index + 1).padStart(4, '0')}`, type:'out', productId, productName:name, quantity:outbound, amount:0, partner:'Excel 月报导入', operator:'Excel 导入', createdAt:period, note:`模板导入：${period}` });
   });
+  const detailedMovements = parseDetailSheet(workbook, products, flowTotals, errors);
+  const movements = detailedMovements === null ? summarizedMovements : detailedMovements;
   if (errors.length) throw new Error(`模板校验未通过：\n${errors.slice(0, 6).join('\n')}${errors.length > 6 ? `\n另有 ${errors.length - 6} 项问题。` : ''}`);
   if (!products.length) throw new Error('模板中没有可导入的商品行。');
   return { state:{ products, suppliers:[], customers:[], movements }, summary:{ sheetName:found.name, productCount:products.length, inboundCount:movements.filter(item => item.type === 'in').length, outboundCount:movements.filter(item => item.type === 'out').length } };
@@ -106,6 +138,21 @@ export function createMonthlyReport(data, options = {}) {
   ws['!ref'] = `A1:H${noteRow}`;
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, ws, `${year}.${month - 1}报表`);
+  const productById = new Map(products.map(product => [product.id, product]));
+  const detailRows = [DETAIL_HEADERS, ...movements.map(item => {
+    const product = productById.get(item.productId) || {};
+    return [item.id || '', item.type === 'in' ? '入库' : '出库', product.category || '', product.sku || item.productName || '', product.spec || '', Number(item.quantity || 0), item.partner || '', item.operator || '', item.createdAt || '', item.note || ''];
+  })];
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
+  detailSheet['!cols'] = [{wch:20}, {wch:11}, {wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:18}, {wch:14}, {wch:20}, {wch:30}];
+  DETAIL_HEADERS.forEach((_, index) => { detailSheet[`${col(index)}1`].s = headerStyle; });
+  for (let detailRow = 2; detailRow <= detailRows.length; detailRow += 1) {
+    for (let detailColumn = 0; detailColumn < DETAIL_HEADERS.length; detailColumn += 1) {
+      const target = detailSheet[`${col(detailColumn)}${detailRow}`];
+      if (target) target.s = detailColumn === 5 ? numberStyle : bodyStyle;
+    }
+  }
+  XLSX.utils.book_append_sheet(workbook, detailSheet, '出入库明细');
   workbook.Workbook = { CalcPr:{ calcMode:'auto' } };
   return XLSX.write(workbook, { bookType:'xlsx', type:'array', cellStyles:true });
 }
