@@ -341,10 +341,12 @@ function installExcelActions() {
 let latestFlowKey = '';
 let loadingFlowStats = false;
 let dashboardCustomerId = '';
+let loadingDashboardCustomerScope = false;
 function installDashboardCustomerScope() {
   const dashboard = document.querySelector('.dashboard');
   const welcome = dashboard?.querySelector('.welcome');
-  if (!dashboard || !welcome || document.getElementById('wb-dashboard-customer')) return;
+  if (!dashboard || !welcome || document.getElementById('wb-dashboard-customer') || loadingDashboardCustomerScope) return;
+  loadingDashboardCustomerScope = true;
   createLocalApi()('/partners').then(partners => {
     if (!partners.customers.length) return;
     const scope = document.createElement('label');
@@ -359,7 +361,7 @@ function installDashboardCustomerScope() {
     scope.append(select);
     welcome.querySelector('.welcome-action')?.prepend(scope);
     refreshDashboardCustomerStats(dashboard);
-  });
+  }).finally(() => { loadingDashboardCustomerScope = false; });
 }
 function refreshDashboardCustomerStats(dashboard) {
   createLocalApi().exportState().then(backup => {
@@ -468,10 +470,12 @@ function openCustomerMovements(customerId) {
   } else document.querySelectorAll('.side nav button')[4]?.click();
 }
 
+let loadingHomeCustomerList = false;
 function installHomeCustomerList() {
   const dashboard = document.querySelector('.dashboard');
   const flow = document.getElementById('wb-flow-summary');
-  if (!dashboard || !flow || document.getElementById('wb-home-customers')) return;
+  if (!dashboard || !flow || document.getElementById('wb-home-customers') || loadingHomeCustomerList) return;
+  loadingHomeCustomerList = true;
   Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]).then(([partners, backup]) => {
     if (!document.contains(flow)) return;
     const card = document.createElement('section');
@@ -481,7 +485,7 @@ function installHomeCustomerList() {
     card.querySelectorAll('button[data-stat]').forEach(button => button.addEventListener('click', () => openCustomerDashboard(button.dataset.stat)));
     card.querySelectorAll('button[data-flow]').forEach(button => button.addEventListener('click', () => openCustomerMovements(button.dataset.flow)));
     flow.insertAdjacentElement('afterend', card);
-  });
+  }).finally(() => { loadingHomeCustomerList = false; });
 }
 
 let productCustomerFilter = '';
