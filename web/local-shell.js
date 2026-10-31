@@ -316,6 +316,32 @@ function installExcelActions() {
 
 let latestFlowKey = '';
 let loadingFlowStats = false;
+let dashboardCustomerId = '';
+function installDashboardCustomerScope() {
+  const dashboard = document.querySelector('.dashboard');
+  const welcome = dashboard?.querySelector('.welcome');
+  if (!dashboard || !welcome || document.getElementById('wb-dashboard-customer')) return;
+  createLocalApi()('/partners').then(partners => {
+    if (!partners.customers.length) return;
+    dashboardCustomerId ||= partners.customers[0].id;
+    const select = document.createElement('select');
+    select.id = 'wb-dashboard-customer';
+    select.className = 'wb-customer-filter';
+    select.innerHTML = partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('');
+    select.value = dashboardCustomerId;
+    select.addEventListener('change', () => { dashboardCustomerId = select.value; latestFlowKey = ''; installHomeFlowStats(); refreshDashboardCustomerStats(dashboard); });
+    welcome.querySelector('.welcome-action')?.prepend(select);
+    refreshDashboardCustomerStats(dashboard);
+  });
+}
+function refreshDashboardCustomerStats(dashboard) {
+  if (!dashboardCustomerId) return;
+  createLocalApi().exportState().then(backup => {
+    const data = backup.data, products = data.products.filter(item => item.customerId === dashboardCustomerId), movements = data.movements.filter(item => item.customerId === dashboardCustomerId);
+    const stats = dashboard.querySelectorAll('.stats article strong');
+    if (stats.length >= 4) { stats[0].textContent = products.length; stats[1].textContent = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); stats[2].textContent = `¥${movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; stats[3].textContent = `¥${movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; }
+  });
+}
 function installHomeFlowStats() {
   const dashboard = document.querySelector('.dashboard');
   const welcome = dashboard?.querySelector('.welcome');
@@ -332,9 +358,11 @@ function installHomeFlowStats() {
   loadingFlowStats = true;
   createLocalApi().exportState().then(backup => {
     const data = backup.data;
-    const inbound = data.movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    const outbound = data.movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    const stock = data.products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
+    const movements = data.movements.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
+    const products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
+    const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
     const key = `${inbound}/${outbound}/${stock}`;
     if (key !== latestFlowKey) {
       latestFlowKey = key;
@@ -419,7 +447,8 @@ function installCustomerProductFilter() {
     select = document.createElement('select');
     select.id = 'wb-customer-filter';
     select.className = 'wb-customer-filter';
-    select.innerHTML = `<option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
+    productCustomerFilter ||= partners.customers[0]?.id || '';
+    select.innerHTML = partners.customers.length ? partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('') : '<option value="">暂无客户</option>';
     select.value = productCustomerFilter;
     const apply = () => {
       productCustomerFilter = select.value;
@@ -503,6 +532,7 @@ function installPageActions() {
   }
   installExcelActions();
   installReportSnapshotActions();
+  installDashboardCustomerScope();
   installDashboardQuickActions();
   installHomeFlowStats();
   installCustomerProductFilter();
