@@ -1,4 +1,7 @@
-import * as XLSX from './vendor/xlsx.mjs';
+import * as XLSXParser from './vendor/xlsx.mjs';
+if (typeof window !== 'undefined') await import('./vendor/xlsx-style.js');
+
+const XLSX = globalThis.XLSX || XLSXParser;
 
 export const TEMPLATE_HEADERS = ['系列', '型号', '规格', '期初', '入库', '出库', '结存', '备注'];
 export const DETAIL_HEADERS = ['单据编号', '业务类型', '系列', '型号', '规格', '数量', '往来单位', '经办人', '时间', '备注'];
@@ -94,17 +97,23 @@ export function createMonthlyReport(data, options = {}) {
   const year = now.getFullYear(), month = now.getMonth() + 1;
   const ws = {};
   const border = { top:{style:'thin',color:{rgb:'95A5A6'}}, bottom:{style:'thin',color:{rgb:'95A5A6'}}, left:{style:'thin',color:{rgb:'95A5A6'}}, right:{style:'thin',color:{rgb:'95A5A6'}} };
-  const titleStyle = { font:{bold:true,sz:16,color:{rgb:'163C47'}}, alignment:{horizontal:'center',vertical:'center'} };
-  const subtitleStyle = { font:{sz:10,color:{rgb:'52656D'}}, alignment:{horizontal:'center',vertical:'center'} };
+  const titleStyle = { font:{bold:true,sz:16,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'155A65'}}, alignment:{horizontal:'center',vertical:'center'} };
+  const subtitleStyle = { font:{sz:10,color:{rgb:'3E5B63'}}, fill:{fgColor:{rgb:'E9F4F3'}}, alignment:{horizontal:'center',vertical:'center'} };
   const headerStyle = { font:{bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1B6B73'}}, alignment:{horizontal:'center',vertical:'center'}, border };
   const bodyStyle = { alignment:{vertical:'center'}, border };
   const numberStyle = { ...bodyStyle, alignment:{horizontal:'right',vertical:'center'} };
-  const subtotalStyle = { font:{bold:true}, fill:{fgColor:{rgb:'DDEEEF'}}, alignment:{vertical:'center'}, border };
+  const noteStyle = { ...bodyStyle, font:{color:{rgb:'52656D'}}, alignment:{vertical:'center',wrapText:true} };
+  const subtotalStyle = { font:{bold:true,color:{rgb:'174A53'}}, fill:{fgColor:{rgb:'DDEEEF'}}, alignment:{vertical:'center'}, border };
+  const totalStyle = { font:{bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'2A6974'}}, alignment:{vertical:'center'}, border:{...border,bottom:{style:'double',color:{rgb:'174A53'}}} };
   Object.assign(ws, cell('A1', `赢之诺${year}年${month}月报表`, titleStyle), cell('A2', `单位：件                            ${year}.${month}.1—${year}.${month}.${new Date(year, month, 0).getDate()}`, subtitleStyle));
   TEMPLATE_HEADERS.forEach((header, index) => Object.assign(ws, cell(`${col(index)}3`, header, headerStyle)));
   ws['!merges'] = [XLSX.utils.decode_range('A1:H1'), XLSX.utils.decode_range('A2:H2')];
   ws['!cols'] = [{wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:10}, {wch:10}, {wch:10}, {wch:22}];
-  ws['!rows'] = [{hpt:28}, {hpt:21}, {hpt:22}];
+  ws['!rows'] = [{hpt:30}, {hpt:22}, {hpt:24}];
+  for (let titleColumn = 1; titleColumn < TEMPLATE_HEADERS.length; titleColumn += 1) {
+    ws[`${col(titleColumn)}1`] = { t:'s', v:'', s:titleStyle };
+    ws[`${col(titleColumn)}2`] = { t:'s', v:'', s:subtitleStyle };
+  }
   let row = 4;
   const subtotalRows = [];
   const groups = new Map();
@@ -117,7 +126,7 @@ export function createMonthlyReport(data, options = {}) {
       const outbound = rows.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
       const closing = Number(product.stock || 0);
       const opening = Number.isFinite(Number(product.openingStock)) && Math.abs(Number(product.openingStock) + inbound - outbound - closing) < 0.000001 ? Number(product.openingStock) : closing - inbound + outbound;
-      Object.assign(ws, cell(`A${row}`, row === first ? series : '', bodyStyle), cell(`B${row}`, product.sku || product.name || '', bodyStyle), cell(`C${row}`, product.spec || '', bodyStyle), cell(`D${row}`, opening, numberStyle), cell(`E${row}`, inbound, numberStyle), cell(`F${row}`, outbound, numberStyle), cell(`G${row}`, closing, numberStyle), cell(`H${row}`, product.remark || '', bodyStyle));
+      Object.assign(ws, cell(`A${row}`, row === first ? series : '', bodyStyle), cell(`B${row}`, product.sku || product.name || '', bodyStyle), cell(`C${row}`, product.spec || '', bodyStyle), cell(`D${row}`, opening, numberStyle), cell(`E${row}`, inbound, numberStyle), cell(`F${row}`, outbound, numberStyle), cell(`G${row}`, closing, numberStyle), cell(`H${row}`, product.remark || '', noteStyle));
       ws[`F${row}`] = { t:'n', v:outbound, f:`D${row}+E${row}-G${row}`, s:numberStyle };
       row += 1;
     }
@@ -129,8 +138,8 @@ export function createMonthlyReport(data, options = {}) {
     ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
     row += 1;
   }
-  Object.assign(ws, cell(`A${row}`, '合计', subtotalStyle), cell(`D${row}`, 0, subtotalStyle), cell(`E${row}`, 0, subtotalStyle), cell(`F${row}`, 0, subtotalStyle), cell(`G${row}`, 0, subtotalStyle));
-  ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:subtotalRows.length ? subtotalRows.map(item => `${letter}${item}`).join('+') : '0', s:subtotalStyle }; });
+  Object.assign(ws, cell(`A${row}`, '合计', totalStyle), cell(`D${row}`, 0, totalStyle), cell(`E${row}`, 0, totalStyle), cell(`F${row}`, 0, totalStyle), cell(`G${row}`, 0, totalStyle));
+  ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:subtotalRows.length ? subtotalRows.map(item => `${letter}${item}`).join('+') : '0', s:totalStyle }; });
   ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
   Object.assign(ws, cell(`A${row + 1}`, `上期结存：${products.reduce((sum, product) => sum + Number(product.openingStock || 0), 0)}`), cell(`G${row + 1}`, '制表人：WareBoss'), cell(`G${row + 2}`, `日期：${year}.${month}.${new Date(year, month, 0).getDate()}`));
   const noteRow = options.snapshotNote ? row + 3 : row + 2;
@@ -139,17 +148,25 @@ export function createMonthlyReport(data, options = {}) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, ws, `${year}.${month - 1}报表`);
   const productById = new Map(products.map(product => [product.id, product]));
-  const detailRows = [DETAIL_HEADERS, ...movements.map(item => {
+  const detailRows = [['出入库明细'], DETAIL_HEADERS, ...movements.map(item => {
     const product = productById.get(item.productId) || {};
     return [item.id || '', item.type === 'in' ? '入库' : '出库', product.category || '', product.sku || item.productName || '', product.spec || '', Number(item.quantity || 0), item.partner || '', item.operator || '', item.createdAt || '', item.note || ''];
   })];
   const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
-  detailSheet['!cols'] = [{wch:20}, {wch:11}, {wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:18}, {wch:14}, {wch:20}, {wch:30}];
-  DETAIL_HEADERS.forEach((_, index) => { detailSheet[`${col(index)}1`].s = headerStyle; });
-  for (let detailRow = 2; detailRow <= detailRows.length; detailRow += 1) {
+  detailSheet['!cols'] = [{wch:20}, {wch:11}, {wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:18}, {wch:14}, {wch:20}, {wch:32}];
+  detailSheet['!merges'] = [XLSX.utils.decode_range('A1:J1')];
+  detailSheet['!rows'] = [{hpt:28}, {hpt:23}];
+  for (let detailColumn = 0; detailColumn < DETAIL_HEADERS.length; detailColumn += 1) {
+    const title = detailSheet[`${col(detailColumn)}1`] || { t:'s', v:'' };
+    title.s = titleStyle;
+    detailSheet[`${col(detailColumn)}1`] = title;
+    detailSheet[`${col(detailColumn)}2`].s = headerStyle;
+  }
+  detailSheet['!autofilter'] = { ref:`A2:J${Math.max(2, detailRows.length)}` };
+  for (let detailRow = 3; detailRow <= detailRows.length; detailRow += 1) {
     for (let detailColumn = 0; detailColumn < DETAIL_HEADERS.length; detailColumn += 1) {
       const target = detailSheet[`${col(detailColumn)}${detailRow}`];
-      if (target) target.s = detailColumn === 5 ? numberStyle : bodyStyle;
+      if (target) target.s = detailColumn === 5 ? numberStyle : detailColumn === 9 ? noteStyle : bodyStyle;
     }
   }
   XLSX.utils.book_append_sheet(workbook, detailSheet, '出入库明细');
