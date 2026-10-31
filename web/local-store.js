@@ -148,6 +148,15 @@ export function createLocalApi() {
     data.reports = data.reports.filter(item => item.id !== id);
     await save(data);
   };
+  api.clearCustomerData = async customerId => {
+    const data = await state();
+    if (!data.customers.some(item => item.id === customerId)) throw new Error('客户不存在或已被删除');
+    data.products = data.products.filter(item => item.customerId !== customerId);
+    data.movements = data.movements.filter(item => item.customerId !== customerId);
+    data.customers = data.customers.filter(item => item.id !== customerId);
+    data.reports = data.reports.filter(report => !report.data?.products?.some(item => item.customerId === customerId));
+    await save(data);
+  };
   api.clearState = async () => { await save(emptyState()); };
   return api;
 }

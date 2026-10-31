@@ -65,19 +65,20 @@ function logout() {
   showLogin();
 }
 
-function showClearDialog() {
+async function showClearDialog() {
   if (document.getElementById('wb-clear-overlay')) return;
+  const partners = await createLocalApi()('/partners');
   const overlay = document.createElement('div');
   overlay.id = 'wb-clear-overlay';
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-clear-title"><h2 id="wb-clear-title">确认清理全部本机数据？</h2><p>商品、供应商、客户和全部出入库流水都会被删除，无法恢复。已下载到手机或电脑的备份文件不会被删除。</p><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认清理</button></div></section>`;
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-clear-title"><h2 id="wb-clear-title">确认清理本机数据？</h2><p>可选择只清理某个客户，或清理全部数据。已下载的备份和 Excel 文件不会受影响。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">清理范围<select class="customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">全部本机数据</option>${partners.customers.map(item => `<option value="${textForHtml(item.id)}">仅清理：${textForHtml(item.name)}</option>`).join('')}</select></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认清理</button></div></section>`;
   const close = () => overlay.remove();
   overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
   overlay.querySelector('.cancel').addEventListener('click', close);
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = '清理中…';
-    try { await createLocalApi().clearState(); location.reload(); } catch (_) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认清理'; }
+    try { const customerId = overlay.querySelector('.customer').value; if (customerId) await createLocalApi().clearCustomerData(customerId); else await createLocalApi().clearState(); location.reload(); } catch (error) { window.alert(error.message || '清理失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认清理'; }
   });
   document.body.append(overlay);
 }
