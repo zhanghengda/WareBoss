@@ -171,15 +171,16 @@ function showDeleteReportDialog(report, card) {
   document.body.append(overlay);
 }
 
-function showCreateReportDialog(card) {
+async function showCreateReportDialog(card) {
+  const [partners, backup] = await Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]);
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>生成月报快照</h2><p>将冻结当前商品、出入库和结存数据。之后的数据变动不会影响这份月报。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">备注（可选）<textarea rows="3" maxlength="120" placeholder="例如：10 月盘点后月报" style="resize:vertical;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"></textarea></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认生成</button></div></section>';
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>生成客户月报快照</h2><p>选择客户后，将冻结该客户当前的商品、出入库和结存数据。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">客户<select class="customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(item => `<option value="${textForHtml(item.id)}">${textForHtml(item.name)}</option>`).join('')}</select></label><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">备注（可选）<textarea rows="3" maxlength="120" placeholder="例如：10 月盘点后月报" style="resize:vertical;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"></textarea></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认生成</button></div></section>`;
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = '生成中…';
-    try { const snapshot = await createLocalApi().createReportSnapshot(overlay.querySelector('textarea').value.trim()); overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot); } catch (_) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
+    try { const customer = partners.customers.find(item => item.id === overlay.querySelector('.customer').value); if (!customer) throw new Error('请选择客户'); const data = backup.data; const reportData = { ...data, customers:[customer], products:data.products.filter(item => item.customerId === customer.id), movements:data.movements.filter(item => item.customerId === customer.id) }; if (!reportData.products.length) throw new Error('该客户暂无库存数据，无法生成月报'); const note = overlay.querySelector('textarea').value.trim(); const snapshot = await createLocalApi().createReportSnapshot(`客户：${customer.name}${note ? `；${note}` : ''}`, reportData); overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot); } catch (error) { window.alert(error.message || '生成失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
   });
   document.body.append(overlay);
 }

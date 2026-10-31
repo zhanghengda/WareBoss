@@ -134,10 +134,11 @@ export function createLocalApi() {
     await save({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements, reports:Array.isArray(data.reports) ? data.reports : [] });
   };
   api.listReportSnapshots = async () => clone((await state()).reports);
-  api.createReportSnapshot = async note => {
+  api.createReportSnapshot = async (note, snapshotData = null) => {
     const data = await state();
     const createdAt = new Date().toISOString();
-    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, note:String(note || '').slice(0, 120), data:clone({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements }) };
+    const reportData = snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements };
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, note:String(note || '').slice(0, 120), data:clone(reportData) };
     data.reports.unshift(snapshot);
     await save(data);
     return clone(snapshot);
