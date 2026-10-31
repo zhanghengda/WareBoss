@@ -190,16 +190,34 @@ function installReportSnapshotActions() {
   renderReportSnapshots(card);
 }
 
-function showExcelImportDialog(candidate) {
+function assignCustomerOwnership(state, customer) {
+  const data = JSON.parse(JSON.stringify(state));
+  data.customers = [customer];
+  data.products = data.products.map(product => ({ ...product, customerId:customer.id, customerName:customer.name }));
+  data.movements = data.movements.map(item => ({ ...item, customerId:customer.id, customerName:customer.name }));
+  return data;
+}
+
+async function showExcelImportDialog(candidate) {
+  const partnerState = await createLocalApi()('/partners');
+  const options = partnerState.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('');
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>确认导入 Excel 月报？</h2><p>已识别工作表“${candidate.summary.sheetName}”：${candidate.summary.productCount} 个商品、${candidate.summary.inboundCount} 条入库汇总、${candidate.summary.outboundCount} 条出库汇总。导入会覆盖本机当前全部业务数据。</p><div class="wb-clear-actions"><button class="cancel" type="button">返回</button><button class="confirm" type="button">确认导入</button></div></section>`;
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>确认导入 Excel 月报？</h2><p>已识别工作表“${candidate.summary.sheetName}”：${candidate.summary.productCount} 个商品、${candidate.summary.inboundCount} 条入库汇总、${candidate.summary.outboundCount} 条出库汇总。导入后，这批库存将全部归属到所选客户。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">库存归属客户<select class="wb-import-customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">${options ? '请选择已有客户' : '暂无客户，请填写新客户'}</option>${options}</select></label><label style="display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d">或新建客户<input class="wb-import-customer-name" placeholder="填写客户名称后将自动创建" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">返回</button><button class="confirm" type="button">确认导入</button></div></section>`;
   const close = () => overlay.remove();
   overlay.querySelector('.cancel').addEventListener('click', close);
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = '导入中…';
-    try { await createLocalApi().importState(candidate.state); location.reload(); } catch (_) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认导入'; }
+    const customerId = overlay.querySelector('.wb-import-customer').value;
+    const customerName = overlay.querySelector('.wb-import-customer-name').value.trim();
+    try {
+      let customer = partnerState.customers.find(item => item.id === customerId);
+      if (customerName) customer = await createLocalApi()('/partners', { method:'POST', body:JSON.stringify({ type:'customer', name:customerName }) });
+      if (!customer) throw new Error('请先选择或填写库存归属客户');
+      await createLocalApi().importState(assignCustomerOwnership(candidate.state, customer));
+      location.reload();
+    } catch (error) { window.alert(error.message || '导入失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认导入'; }
   });
   document.body.append(overlay);
 }
@@ -212,7 +230,7 @@ function chooseInitializationFile() {
     const file = input.files?.[0];
     input.remove();
     if (!file) return;
-    try { showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
+    try { await showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
   }, { once:true });
   input.click();
 }
@@ -274,7 +292,7 @@ function installExcelActions() {
     const file = fileInput.files?.[0];
     fileInput.value = '';
     if (!file) return;
-    try { showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
+    try { await showExcelImportDialog(parseMonthlyReport(await file.arrayBuffer())); } catch (error) { window.alert(error.message || 'Excel 模板解析失败。'); }
   });
   grid.prepend(card);
 }

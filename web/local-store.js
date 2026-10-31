@@ -62,22 +62,36 @@ export function createLocalApi() {
     if (url === '/products') {
       if (!payload.name || !payload.sku) throw new Error('请填写商品名称和编码');
       if (data.products.some(item => item.sku === payload.sku && (item.category || '') === (payload.category || '其他') && (item.spec || '') === (payload.spec || ''))) throw new Error('该系列、商品编码和规格已存在');
-      const product = { id:`P${Date.now().toString().slice(-6)}`, name:payload.name, sku:payload.sku, category:payload.category || '其他', spec:payload.spec || '', unit:payload.unit || '件', openingStock:Number(payload.openingStock ?? payload.stock) || 0, stock:Number(payload.stock) || 0, safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配', remark:payload.remark || '' };
+      const customer = data.customers.find(item => item.id === payload.customerId);
+      if (!customer) throw new Error('请先选择库存归属客户');
+      const product = { id:`P${Date.now().toString().slice(-6)}`, name:payload.name, sku:payload.sku, category:payload.category || '其他', spec:payload.spec || '', unit:payload.unit || '件', openingStock:Number(payload.openingStock ?? payload.stock) || 0, stock:Number(payload.stock) || 0, safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配', remark:payload.remark || '', customerId:customer.id, customerName:customer.name };
       data.products.unshift(product); await save(data); return product;
+    }
+    if (url === '/partners') {
+      const type = payload.type === 'supplier' ? 'supplier' : 'customer';
+      const name = String(payload.name || '').trim();
+      if (!name) throw new Error(`请填写${type === 'supplier' ? '供应商' : '客户'}名称`);
+      const list = type === 'supplier' ? data.suppliers : data.customers;
+      const existing = list.find(item => item.name === name);
+      if (existing) return existing;
+      const partner = { id:`${type === 'supplier' ? 'SUP':'CUS'}${Date.now()}`, name, contact:String(payload.contact || '').trim(), phone:String(payload.phone || '').trim(), createdAt:now() };
+      list.unshift(partner); await save(data); return partner;
     }
     if (url === '/movements') {
       const product = data.products.find(item => item.id === payload.productId);
       const quantity = Number(payload.quantity);
       if (!product || !['in','out'].includes(payload.type) || !Number.isFinite(quantity) || quantity <= 0) throw new Error('请完整填写业务单据');
       if (payload.type === 'out' && product.stock < quantity) throw new Error('当前库存不足，无法出库');
+      const customer = data.customers.find(item => item.id === payload.customerId);
+      if (!customer) throw new Error('请选择库存归属客户');
+      if (!product.customerId || product.customerId !== customer.id) throw new Error('所选商品不属于该客户，请重新选择客户或商品');
       product.stock += payload.type === 'in' ? quantity : -quantity;
       const price = Number(payload.price) || (payload.type === 'in' ? product.cost : product.price);
-      const partner = String(payload.partner || '').trim() || '未填写';
-      const partnerList = payload.type === 'in' ? data.suppliers : data.customers;
-      if (partner !== '未填写' && !partnerList.some(item => item.name === partner)) {
-        partnerList.unshift({ id:`${payload.type === 'in' ? 'SUP':'CUS'}${Date.now()}`, name:partner, contact:'', phone:'', createdAt:now() });
+      const partner = payload.type === 'out' ? (String(payload.partner || '').trim() || customer.name) : (String(payload.partner || '').trim() || '未填写');
+      if (payload.type === 'in' && partner !== '未填写' && !data.suppliers.some(item => item.name === partner)) {
+        data.suppliers.unshift({ id:`SUP${Date.now()}`, name:partner, contact:'', phone:'', createdAt:now() });
       }
-      const item = { id:`${payload.type === 'in' ? 'RK':'CK'}${Date.now()}`, type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner, operator:payload.operator || '管理员', createdAt:now(), note:payload.note || '' };
+      const item = { id:`${payload.type === 'in' ? 'RK':'CK'}${Date.now()}`, type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner, customerId:customer.id, customerName:customer.name, operator:payload.operator || '管理员', createdAt:now(), note:payload.note || '' };
       data.movements.unshift(item); await save(data); return item;
     }
     throw new Error('本地功能不存在');
