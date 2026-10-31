@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.6';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.6';
+import { createLocalApi } from './local-store.js?v=20261031.8';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.8';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -670,7 +670,7 @@ function enablePageTopReset() {
   if (document.documentElement.dataset.wbTopReset) return;
   document.documentElement.dataset.wbTopReset = 'true';
   document.addEventListener('click', event => {
-    if (!event.target.closest('.mobile-nav button, .side nav button, .more-sheet button')) return;
+    if (!event.target.closest('.mobile-nav button, .side nav button')) return;
     setTimeout(() => window.scrollTo({ top:0, left:0, behavior:'auto' }), 0);
   });
 }
@@ -699,9 +699,6 @@ function installPageActions() {
   installCustomerStatistics();
   installMovementCustomerFilter();
   installProductRemarks();
-  installMoreInitialization();
-  installMoreReportGenerator();
-  installMoreLogout();
 }
 
 export function installLocalShell() {

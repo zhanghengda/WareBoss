@@ -1,13 +1,13 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261031.6';
-import { installLocalShell } from './local-shell.js?v=20261031.6';
+import { createLocalApi } from './local-store.js?v=20261031.8';
+import { installLocalShell } from './local-shell.js?v=20261031.8';
 
 const api = createLocalApi();
 installLocalShell();
 ((options) => createApp({ ...options, template:options.template.replaceAll('&&', '&amp;&amp;') }))({
   setup(){
     const page=ref('dashboard'), overview=ref({lowStock:[],recent:[]}), products=ref([]), movements=ref([]), partners=ref({suppliers:[],customers:[]});
-    const query=ref(''), dialog=ref(null), confirming=ref(false), discarding=ref(false), importCandidate=ref(null), importCustomerId=ref(''), clearCandidate=ref(false), mobileMore=ref(false), busy=ref(false), toast=ref(''), backupInput=ref(null);
+    const query=ref(''), dialog=ref(null), confirming=ref(false), discarding=ref(false), importCandidate=ref(null), importCustomerId=ref(''), clearCandidate=ref(false), busy=ref(false), toast=ref(''), backupInput=ref(null);
     const blankProduct=()=>({name:'',sku:'',category:'包装耗材',unit:'个',stock:0,safeStock:0,cost:0,price:0,location:'',customerId:''});
     const blankMove=(type)=>({type,customerId:'',productId:'',quantity:1,price:'',partner:'',operator:'管理员',note:''});
     const blankCustomer=()=>({type:'customer',name:'',contact:'',phone:''});
@@ -44,7 +44,7 @@ installLocalShell();
       more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
     };
     const nav=[['dashboard','dashboard'],['products','products'],['movements','movements'],['alerts','bell'],['backup','backup'],['inbound','inbound'],['outbound','outbound'],['partners','partners']];
-    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,mobileMore,form,busy,toast,backupInput,pages,filtered,customerProducts,fmt,open,syncMoveCustomer,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
+    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,form,busy,toast,backupInput,pages,filtered,customerProducts,fmt,open,syncMoveCustomer,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
   },
   template:`
   <div class="shell"><aside class="side"><div class="brand"><img src="./logo.svg" alt="WareBoss 标志"/><span>Ware<b>Boss</b><small>SMART WAREHOUSE</small></span></div><nav><button v-for="n in nav" :class="{active:page===n[0]}" @click="page=n[0]"><i v-html="icons[n[1]]"></i>{{pages[n[0]]}}</button></nav><div class="side-user"><div>张</div><span>张仓管<small>仓库管理员</small></span><b>⌄</b></div></aside>
