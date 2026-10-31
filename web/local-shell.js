@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.5';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.5';
+import { createLocalApi } from './local-store.js?v=20261031.6';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.6';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -466,17 +466,6 @@ function goToPage(name) {
   [...document.querySelectorAll('.side nav button')].find(button => button.textContent.includes(name))?.click();
 }
 
-function installDirectMoreNavigation() {
-  const button = document.querySelector('.mobile-nav button:last-child');
-  if (!button || button.dataset.wbDirectMore) return;
-  button.dataset.wbDirectMore = 'true';
-  button.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    goToPage('更多功能');
-  }, true);
-}
-
 function installMoreFunctionList() {
   const grid = document.querySelector('.partner-grid');
   if (!grid || document.querySelector('header h1')?.textContent.trim() !== '更多功能' || document.getElementById('wb-more-functions')) return;
@@ -705,7 +694,6 @@ function installPageActions() {
   installHomeFlowStats();
   installHomeCustomerList();
   installCustomerProductFilter();
-  installDirectMoreNavigation();
   installMoreFunctionList();
   installCustomerAlerts();
   installCustomerStatistics();
