@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.9';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.9';
+import { createLocalApi } from './local-store.js?v=20261031.10';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.10';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -295,12 +295,16 @@ function showInitializationFileDialog() {
   document.body.append(overlay);
 }
 
-async function showInitializeDialog() {
+async function showInitializeDialog(options = {}) {
   try {
+    const title = options.title || '初始化客户数据';
+    const description = options.description || '请先选择库存归属客户。稍后导入的 Excel 只会替换该客户的商品和出入库流水，其他客户的数据不会改变。';
     const partners = await createLocalApi()('/partners');
     const overlay = document.createElement('div');
     overlay.className = 'wb-clear-overlay';
     overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>初始化客户数据</h2><p>请先选择库存归属客户。稍后导入的 Excel 只会替换该客户的商品和出入库流水，其他客户的数据不会改变。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">归属客户<select class="wb-init-customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label><label style="display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d">或新建客户<input class="wb-init-customer-name" placeholder="填写客户名称后自动创建" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">下一步：选择 Excel</button></div></section>`;
+    overlay.querySelector('h2').textContent = title;
+    overlay.querySelector('p').textContent = description;
     overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
     overlay.querySelector('.confirm').addEventListener('click', async event => {
       const customerId = overlay.querySelector('.wb-init-customer').value;
@@ -319,6 +323,13 @@ async function showInitializeDialog() {
     });
     document.body.append(overlay);
   } catch (error) { window.alert(error.message || '无法读取客户列表，请重试。'); }
+}
+
+function showExcelImportCustomerDialog() {
+  return showInitializeDialog({
+    title:'导入客户月报',
+    description:'请先选择本次 Excel 月报归属的客户。导入只会替换该客户的商品与出入库流水，其他客户数据不会改变。'
+  });
 }
 
 function installMoreInitialization() {
@@ -364,7 +375,7 @@ function installExcelActions() {
   card.innerHTML = `<h3>Excel 月报模板</h3><p>使用“系列、型号、规格、期初、入库、出库、结存、备注”模板导入或导出。</p><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/><button class="primary" type="button">导出 Excel 月报</button><button class="secondary import-button" type="button">导入 Excel 月报</button>`;
   const [fileInput, exportButton, importButton] = card.querySelectorAll('input,button');
   exportButton.addEventListener('click', () => showCustomerExportDialog().catch(error => window.alert(error.message || '无法打开客户列表。')));
-  importButton.addEventListener('click', () => fileInput.click());
+  importButton.addEventListener('click', showExcelImportCustomerDialog);
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     fileInput.value = '';
@@ -711,8 +722,8 @@ function enablePageTopReset() {
 }
 
 function installPageActions() {
-  const importButton = document.querySelector('.backup-page .import-button');
-  const backupInput = document.querySelector('.backup-page input[type="file"]');
+  const importButton = document.querySelector('.backup-page .backup-card:not(#wb-excel-card) .import-button');
+  const backupInput = document.querySelector('.backup-page input[accept="application/json,.json"]');
   if (importButton && backupInput && !importButton.dataset.localBound) {
     importButton.dataset.localBound = 'true';
     importButton.addEventListener('click', event => { event.preventDefault(); event.stopImmediatePropagation(); backupInput.click(); }, true);
