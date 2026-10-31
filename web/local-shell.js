@@ -177,7 +177,29 @@ async function showCreateReportDialog(card) {
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
   overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>生成客户月报快照</h2><p>选择客户后，将冻结该客户当前的商品、出入库和结存数据。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">客户<select class="customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(item => `<option value="${textForHtml(item.id)}">${textForHtml(item.name)}</option>`).join('')}</select></label><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">备注（可选）<textarea rows="3" maxlength="120" placeholder="例如：10 月盘点后月报" style="resize:vertical;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"></textarea></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认生成</button></div></section>`;
+  const customerNameField = document.createElement('label');
+  customerNameField.style.cssText = 'display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d';
+  customerNameField.innerHTML = '没有客户？直接填写客户名称<input class="customer-name" placeholder="旧数据会归属到此客户" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/>';
+  overlay.querySelector('.customer').closest('label').after(customerNameField);
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', async event => {
+    const customerName = overlay.querySelector('.customer-name').value.trim();
+    if (!customerName) return;
+    event.stopImmediatePropagation();
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = '生成中…';
+    try {
+      const api = createLocalApi();
+      const customer = await api('/partners', { method:'POST', body:JSON.stringify({ type:'customer', name:customerName }) });
+      await api.assignUnassignedCustomer(customer.id);
+      const current = await api.exportState();
+      const data = current.data, reportData = { ...data, customers:[customer], products:data.products.filter(item => item.customerId === customer.id), movements:data.movements.filter(item => item.customerId === customer.id) };
+      if (!reportData.products.length) throw new Error('该客户暂无库存数据，无法生成月报');
+      const note = overlay.querySelector('textarea').value.trim();
+      const snapshot = await api.createReportSnapshot(`客户：${customer.name}${note ? `；${note}` : ''}`, reportData);
+      overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot);
+    } catch (error) { window.alert(error.message || '生成失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
+  }, true);
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = '生成中…';
