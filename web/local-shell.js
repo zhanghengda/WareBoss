@@ -12,7 +12,7 @@ function injectStyle() {
     .wb-gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 15%,#196e79 0,transparent 32%),linear-gradient(145deg,#092d37,#061a24);color:#ecfbff}
     .wb-login-card{width:min(100%,380px);padding:34px 30px;border:1px solid rgba(255,255,255,.2);border-radius:22px;background:rgba(7,32,42,.86);box-shadow:0 28px 90px rgba(0,0,0,.42);backdrop-filter:blur(12px)}
     .wb-login-brand{display:flex;align-items:center;gap:11px;margin-bottom:24px;font-size:23px;font-weight:800}.wb-login-brand b{color:#61d6cd}.wb-login-brand span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#1ba79d;color:white}
-    .wb-login-card h1{font-size:22px;margin:0 0 8px}.wb-login-card p{margin:0 0 22px;color:#a8c7ce;line-height:1.65;font-size:14px}.wb-login-card label{display:grid;gap:7px;margin-top:14px;font-size:13px;font-weight:700}.wb-login-card input{box-sizing:border-box;width:100%;border:1px solid #2d6170;border-radius:10px;padding:12px;color:#ecfbff;background:#0a2530;font:inherit;outline:none}.wb-login-card input:focus{border-color:#63d7cf;box-shadow:0 0 0 3px rgba(99,215,207,.15)}.wb-login-card button{width:100%;margin-top:22px;border:0;border-radius:10px;padding:12px;background:#20a69b;color:white;font:700 15px inherit;cursor:pointer}.wb-login-error{min-height:19px;margin:10px 0 -11px;color:#ffaaa2;font-size:13px}.wb-account-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8e7ea;border-radius:9px;padding:7px 9px;background:white;color:#31505a;font-size:12px}.wb-account-chip button{border:0;border-left:1px solid #d8e7ea;background:transparent;color:#49717b;padding-left:8px;cursor:pointer;font:inherit}.wb-clear-overlay{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:rgba(2,16,22,.66)}.wb-clear-dialog{width:min(100%,400px);border-radius:18px;background:white;padding:26px;color:#1d3942;box-shadow:0 25px 70px rgba(0,0,0,.3)}.wb-clear-dialog h2{margin:0 0 10px;font-size:20px}.wb-clear-dialog p{line-height:1.65;color:#5d7178}.wb-clear-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.wb-clear-actions button{border:0;border-radius:9px;padding:10px 14px;font:700 14px inherit;cursor:pointer}.wb-clear-actions .cancel{background:#eaf0f1;color:#42606a}.wb-clear-actions .confirm{background:#d95252;color:white}@media(max-width:640px){.wb-login-card{padding:28px 22px}.wb-account-chip{position:fixed;right:12px;top:10px;z-index:20}.wb-account-chip span{display:none}}
+    .wb-login-card h1{font-size:22px;margin:0 0 8px}.wb-login-card p{margin:0 0 22px;color:#a8c7ce;line-height:1.65;font-size:14px}.wb-login-card label{display:grid;gap:7px;margin-top:14px;font-size:13px;font-weight:700}.wb-login-card input{box-sizing:border-box;width:100%;border:1px solid #2d6170;border-radius:10px;padding:12px;color:#ecfbff;background:#0a2530;font:inherit;outline:none}.wb-login-card input:focus{border-color:#63d7cf;box-shadow:0 0 0 3px rgba(99,215,207,.15)}.wb-login-card button{width:100%;margin-top:22px;border:0;border-radius:10px;padding:12px;background:#20a69b;color:white;font:700 15px inherit;cursor:pointer}.wb-login-error{min-height:19px;margin:10px 0 -11px;color:#ffaaa2;font-size:13px}.wb-account-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8e7ea;border-radius:9px;padding:7px 9px;background:white;color:#31505a;font-size:12px}.wb-account-chip button{border:0;border-left:1px solid #d8e7ea;background:transparent;color:#49717b;padding-left:8px;cursor:pointer;font:inherit}.wb-logout-menu{color:#bb5a57!important}.wb-clear-overlay{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:rgba(2,16,22,.66)}.wb-clear-dialog{width:min(100%,400px);border-radius:18px;background:white;padding:26px;color:#1d3942;box-shadow:0 25px 70px rgba(0,0,0,.3)}.wb-clear-dialog h2{margin:0 0 10px;font-size:20px}.wb-clear-dialog p{line-height:1.65;color:#5d7178}.wb-clear-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.wb-clear-actions button{border:0;border-radius:9px;padding:10px 14px;font:700 14px inherit;cursor:pointer}.wb-clear-actions .cancel{background:#eaf0f1;color:#42606a}.wb-clear-actions .confirm{background:#d95252;color:white}@media(max-width:640px){.wb-login-card{padding:28px 22px}.wb-account-chip{display:none}}
     .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
     .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
@@ -53,8 +53,14 @@ function installAccountChip() {
   chip.id = 'wb-account-chip';
   chip.className = 'wb-account-chip';
   chip.innerHTML = `<span>${account} · ${ACCOUNTS[account].name}</span><button type="button">退出</button>`;
-  chip.querySelector('button').addEventListener('click', () => { localStorage.removeItem(SESSION_KEY); chip.remove(); showLogin(); });
+  chip.querySelector('button').addEventListener('click', logout);
   header.prepend(chip);
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('wb-account-chip')?.remove();
+  showLogin();
 }
 
 function showClearDialog() {
@@ -242,6 +248,18 @@ function installMoreReportGenerator() {
   sheet.prepend(button);
 }
 
+function installMoreLogout() {
+  const sheet = document.querySelector('.more-sheet');
+  if (!sheet || document.getElementById('wb-logout-menu')) return;
+  const button = document.createElement('button');
+  button.id = 'wb-logout-menu';
+  button.className = 'wb-logout-menu';
+  button.type = 'button';
+  button.innerHTML = '<i>↪</i><span>退出登录</span><b>›</b>';
+  button.addEventListener('click', logout);
+  sheet.append(button);
+}
+
 function installExcelActions() {
   const grid = document.querySelector('.backup-page .backup-grid');
   if (!grid || document.getElementById('wb-excel-card')) return;
@@ -358,6 +376,7 @@ function installPageActions() {
   installProductRemarks();
   installMoreInitialization();
   installMoreReportGenerator();
+  installMoreLogout();
 }
 
 export function installLocalShell() {

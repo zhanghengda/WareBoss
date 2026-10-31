@@ -72,7 +72,12 @@ export function createLocalApi() {
       if (payload.type === 'out' && product.stock < quantity) throw new Error('当前库存不足，无法出库');
       product.stock += payload.type === 'in' ? quantity : -quantity;
       const price = Number(payload.price) || (payload.type === 'in' ? product.cost : product.price);
-      const item = { id:`${payload.type === 'in' ? 'RK':'CK'}${Date.now()}`, type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner:payload.partner || '未填写', operator:payload.operator || '管理员', createdAt:now(), note:payload.note || '' };
+      const partner = String(payload.partner || '').trim() || '未填写';
+      const partnerList = payload.type === 'in' ? data.suppliers : data.customers;
+      if (partner !== '未填写' && !partnerList.some(item => item.name === partner)) {
+        partnerList.unshift({ id:`${payload.type === 'in' ? 'SUP':'CUS'}${Date.now()}`, name:partner, contact:'', phone:'', createdAt:now() });
+      }
+      const item = { id:`${payload.type === 'in' ? 'RK':'CK'}${Date.now()}`, type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner, operator:payload.operator || '管理员', createdAt:now(), note:payload.note || '' };
       data.movements.unshift(item); await save(data); return item;
     }
     throw new Error('本地功能不存在');
