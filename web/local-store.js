@@ -94,6 +94,37 @@ export function createLocalApi() {
       const item = { id:`${payload.type === 'in' ? 'RK':'CK'}${Date.now()}`, type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner, customerId:customer.id, customerName:customer.name, operator:payload.operator || '管理员', createdAt:now(), note:payload.note || '' };
       data.movements.unshift(item); await save(data); return item;
     }
+    if (url === '/movements/batch') {
+      const customer = data.customers.find(item => item.id === payload.customerId);
+      const entries = Array.isArray(payload.items) ? payload.items : [];
+      if (!customer) throw new Error('请选择库存归属客户');
+      if (!entries.length) throw new Error('请至少添加一件商品');
+      const items = entries.map((entry, index) => {
+        const product = data.products.find(item => item.id === entry.productId);
+        const quantity = Number(entry.quantity);
+        if (!product || !Number.isFinite(quantity) || quantity <= 0) throw new Error(`第 ${index + 1} 行商品或数量不正确`);
+        if (!product.customerId || product.customerId !== customer.id) throw new Error(`“${product.name}”不属于所选客户`);
+        return { product, quantity, price:Number(entry.price), note:String(entry.note || '').trim() };
+      });
+      const outgoing = new Map();
+      if (payload.type === 'out') {
+        items.forEach(item => outgoing.set(item.product.id, (outgoing.get(item.product.id) || 0) + item.quantity));
+        outgoing.forEach((quantity, productId) => {
+          const product = data.products.find(item => item.id === productId);
+          if (product.stock < quantity) throw new Error(`“${product.name}”库存不足，无法出库`);
+        });
+      }
+      if (!['in','out'].includes(payload.type)) throw new Error('业务类型不正确');
+      const partner = payload.type === 'out' ? (String(payload.partner || '').trim() || customer.name) : (String(payload.partner || '').trim() || '未填写');
+      if (payload.type === 'in' && partner !== '未填写' && !data.suppliers.some(item => item.name === partner)) data.suppliers.unshift({ id:`SUP${Date.now()}`, name:partner, contact:'', phone:'', createdAt:now() });
+      const createdAt = now(), timestamp = Date.now();
+      const records = items.map((item, index) => {
+        item.product.stock += payload.type === 'in' ? item.quantity : -item.quantity;
+        const price = Number.isFinite(item.price) && item.price >= 0 ? item.price : (payload.type === 'in' ? item.product.cost : item.product.price);
+        return { id:`${payload.type === 'in' ? 'RK':'CK'}${timestamp}-${index + 1}`, type:payload.type, productId:item.product.id, productName:item.product.name, quantity:item.quantity, amount:+(item.quantity * price).toFixed(2), partner, customerId:customer.id, customerName:customer.name, operator:String(payload.operator || '管理员').trim() || '管理员', createdAt, note:item.note || String(payload.note || '').trim() };
+      });
+      data.movements.unshift(...records); await save(data); return records;
+    }
     throw new Error('本地功能不存在');
   };
   api.exportState = async () => ({ version: 1, app: 'WareBoss Local', exportedAt: new Date().toISOString(), data: clone(await state()) });
