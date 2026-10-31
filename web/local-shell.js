@@ -16,6 +16,7 @@ function injectStyle() {
     .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
     .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
     .wb-quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:18px 0}.wb-quick-action{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #dceaea;border-radius:13px;background:#fff;color:#254951;cursor:pointer;text-align:left;box-shadow:0 7px 18px rgba(16,58,67,.04)}.wb-quick-action i{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#e5f5f0;color:#117d70;font-size:21px;font-style:normal}.wb-quick-action.out i{background:#f1edff;color:#735cc0}.wb-quick-action b{display:block;font-size:15px}.wb-quick-action span{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-batch-dialog{width:min(100%,650px);max-height:90vh;overflow:auto}.wb-batch-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-batch-dialog input,.wb-batch-dialog select{width:100%;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-batch-items{margin-top:17px}.wb-batch-items h3{margin:0 0 8px;font-size:14px}.wb-batch-row{display:grid;grid-template-columns:minmax(0,1.5fr) 78px minmax(0,1fr) 36px;gap:8px;margin-top:8px;align-items:center}.wb-batch-row .remove{border:0;background:#fff0ef;color:#b95a56;border-radius:7px;height:36px;font-size:18px;cursor:pointer}.wb-add-line{margin-top:10px;border:1px dashed #82b9b1;background:#f3fbf9;color:#167869;border-radius:8px;padding:9px 11px;font-weight:700;cursor:pointer}.wb-batch-note{font-size:12px!important;font-weight:500!important;color:#6f8388!important}@media(max-width:640px){.wb-quick-actions{margin:12px 0;gap:9px}.wb-quick-action{padding:13px 11px;gap:9px}.wb-quick-action i{width:33px;height:33px;font-size:18px}.wb-quick-action b{font-size:13px}.wb-quick-action span{font-size:11px}.wb-batch-row{grid-template-columns:minmax(0,1fr) 66px 34px}.wb-batch-row input.note{display:none}}
+    .wb-customer-filter{max-width:190px;border:1px solid #cbdadd;border-radius:7px;padding:6px 9px;background:#fff;color:#38545d;font:600 12px inherit}@media(max-width:640px){.wb-customer-filter{max-width:138px;font-size:11px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
     .wb-report-preview{width:min(1080px,100%);max-height:min(86vh,820px);overflow:auto;border-radius:18px;background:#f6f9f9;color:#243d45;box-shadow:0 25px 70px rgba(0,0,0,.35)}.wb-preview-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:#155a65;color:white}.wb-preview-head h2{margin:0;font-size:19px}.wb-preview-head p{margin:5px 0 0;color:#cae5e6;font-size:12px}.wb-preview-close{border:0;border-radius:8px;background:#ffffff20;color:white;padding:8px 11px;font-size:18px;cursor:pointer}.wb-preview-body{padding:20px}.wb-preview-note{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#e8f3f1;color:#48636a;font-size:13px;line-height:1.5}.wb-preview-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.wb-preview-metrics div{padding:13px;border:1px solid #dbe8e8;border-radius:10px;background:white}.wb-preview-metrics span{display:block;color:#71858b;font-size:12px}.wb-preview-metrics b{display:block;margin-top:5px;font-size:21px;color:#1c5961}.wb-preview-section{margin-top:18px;background:white;border:1px solid #dce9e9;border-radius:11px;overflow:hidden}.wb-preview-section h3{margin:0;padding:13px 15px;font-size:14px;background:#eef7f6}.wb-preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.wb-preview-table th{padding:10px;background:#1b6b73;color:white;text-align:center}.wb-preview-table td{padding:9px 10px;border-bottom:1px solid #e8eeee;vertical-align:top}.wb-preview-table tr:last-child td{border-bottom:0}.wb-preview-table td.num{text-align:right;font-weight:700}.wb-preview-table td.note{min-width:160px;white-space:normal;color:#5a6f75}.wb-preview-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}.wb-preview-actions button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:600 14px inherit}@media(max-width:640px){.wb-preview-body{padding:13px}.wb-preview-head{padding:15px}.wb-preview-metrics{grid-template-columns:repeat(2,1fr)}.wb-preview-table{font-size:11px}.wb-preview-table th,.wb-preview-table td{padding:8px}.wb-report-preview{max-height:90vh}}
   `;
@@ -402,6 +403,43 @@ function installDashboardQuickActions() {
   welcome.insertAdjacentElement('afterend', card);
 }
 
+let productCustomerFilter = '';
+let loadingCustomerFilter = false;
+function installCustomerProductFilter() {
+  const table = document.querySelector('.table-panel table');
+  const head = document.querySelector('.table-panel .table-head');
+  if (!table || !head || table.querySelector('thead th')?.textContent.trim() !== '商品信息' || loadingCustomerFilter) return;
+  let select = document.getElementById('wb-customer-filter');
+  if (select) return;
+  loadingCustomerFilter = true;
+  Promise.all([createLocalApi()('/partners'), createLocalApi()('/products')]).then(([partners, products]) => {
+    if (!document.contains(head)) return;
+    select = document.createElement('select');
+    select.id = 'wb-customer-filter';
+    select.className = 'wb-customer-filter';
+    select.innerHTML = `<option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
+    select.value = productCustomerFilter;
+    const apply = () => {
+      productCustomerFilter = select.value;
+      table.querySelectorAll('tbody tr').forEach(row => {
+        const name = row.cells[0]?.querySelector('b')?.textContent.trim();
+        const sku = row.cells[0]?.querySelector('small')?.textContent.trim();
+        const category = row.cells[1]?.textContent.trim();
+        const product = products.find(item => item.name === name && item.sku === sku && item.category === category);
+        row.style.display = !productCustomerFilter || product?.customerId === productCustomerFilter ? '' : 'none';
+      });
+    };
+    select.addEventListener('change', apply);
+    head.append(select);
+    const filterButton = head.querySelector('.filter');
+    if (filterButton && !filterButton.dataset.customerBound) {
+      filterButton.dataset.customerBound = 'true';
+      filterButton.addEventListener('click', event => { event.preventDefault(); select.focus(); select.click(); }, true);
+    }
+    apply();
+  }).finally(() => { loadingCustomerFilter = false; });
+}
+
 let loadingProductRemarks = false;
 function installProductRemarks() {
   const table = document.querySelector('.table-panel table');
@@ -465,6 +503,7 @@ function installPageActions() {
   installReportSnapshotActions();
   installDashboardQuickActions();
   installHomeFlowStats();
+  installCustomerProductFilter();
   installProductRemarks();
   installMoreInitialization();
   installMoreReportGenerator();
