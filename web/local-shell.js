@@ -290,6 +290,25 @@ function installProductRemarks() {
   }).finally(() => { loadingProductRemarks = false; });
 }
 
+function enableAutomaticUpdates() {
+  if (!('serviceWorker' in navigator)) return;
+  let updateReady = false;
+  let reloaded = false;
+  const reloadWhenSafe = () => {
+    if (!updateReady || reloaded || document.querySelector('.modal,.overlay,.wb-gate')) return;
+    reloaded = true;
+    location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => { updateReady = true; reloadWhenSafe(); });
+  navigator.serviceWorker.register('./sw.js', { updateViaCache:'none' })
+    .then(registration => {
+      registration.update();
+      setInterval(() => registration.update(), 15 * 60 * 1000);
+    })
+    .catch(() => {});
+  document.addEventListener('click', () => setTimeout(reloadWhenSafe, 0));
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .import-button');
   const backupInput = document.querySelector('.backup-page input[type="file"]');
@@ -312,6 +331,7 @@ function installPageActions() {
 
 export function installLocalShell() {
   injectStyle();
+  enableAutomaticUpdates();
   const refresh = () => { installAccountChip(); installPageActions(); };
   new MutationObserver(refresh).observe(document.body, { childList:true, subtree:true });
   if (ACCOUNTS[localStorage.getItem(SESSION_KEY)]) setTimeout(refresh, 0); else showLogin();
