@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.10';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.10';
+import { createLocalApi } from './local-store.js?v=20261031.13';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.13';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -149,6 +149,58 @@ function showReportPreview(snapshot) {
   document.body.append(overlay);
 }
 
+async function showCustomerReportsDialog(initialCustomerId = '') {
+  const [partners, reports] = await Promise.all([createLocalApi()('/partners'), createLocalApi().listReportSnapshots()]);
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true" style="max-height:82vh;overflow:auto"><h2>客户月报</h2><p>月报生成后会保存在本机。选择客户即可在线查看历史快照，无需重新导出。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">查看客户<select class="customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label><div class="wb-report-list" style="margin-top:14px"></div><div class="wb-clear-actions"><button class="cancel" type="button">关闭</button></div></section>`;
+  const customerSelect = overlay.querySelector('.customer');
+  if ([...customerSelect.options].some(option => option.value === initialCustomerId)) customerSelect.value = initialCustomerId;
+  const monthLabel = document.createElement('label');
+  monthLabel.style.cssText = 'display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d';
+  monthLabel.innerHTML = '查看月份<select class="month" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">最近月份</option><option value="all">全部月份</option></select>';
+  customerSelect.closest('label').after(monthLabel);
+  const monthSelect = monthLabel.querySelector('.month');
+  const list = overlay.querySelector('.wb-report-list');
+  const reportCustomer = report => report.data?.customers?.[0] || partners.customers.find(customer => String(report.note || '').includes(customer.name)) || {};
+  const render = () => {
+    const selectedCustomerId = customerSelect.value;
+    const matched = reports.filter(report => !selectedCustomerId || reportCustomer(report).id === selectedCustomerId);
+    list.innerHTML = matched.map(report => {
+      const customer = reportCustomer(report);
+      return `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${textForHtml(customer.name || '未指定客户')} · ${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })}</b><span>${report.data?.products?.length || 0} 个商品 · ${textForHtml(report.note || '未填写备注')}</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button></div>`;
+    }).join('') || '<p class="empty">该客户尚未生成月报。</p>';
+    list.querySelectorAll('.wb-report-row').forEach(row => {
+      const report = reports.find(item => item.id === row.dataset.reportId);
+      row.querySelector('.view').addEventListener('click', () => showReportPreview(report));
+      row.querySelector('.export').addEventListener('click', () => downloadReportSnapshot(report));
+    });
+  };
+  const renderGrouped = () => {
+    const selectedCustomerId = customerSelect.value;
+    const byCustomer = reports.filter(report => !selectedCustomerId || reportCustomer(report).id === selectedCustomerId);
+    const months = [...new Set(byCustomer.map(report => String(report.createdAt || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+    const previousMonth = monthSelect.value;
+    monthSelect.innerHTML = `<option value="">最近月份${months[0] ? `（${months[0]}）` : ''}</option><option value="all">全部月份</option>${months.map(month => `<option value="${month}">${month}</option>`).join('')}`;
+    if (previousMonth && [...monthSelect.options].some(option => option.value === previousMonth)) monthSelect.value = previousMonth;
+    const targetMonth = monthSelect.value === 'all' ? '' : (monthSelect.value || months[0] || '');
+    const matched = byCustomer.filter(report => !targetMonth || String(report.createdAt || '').slice(0, 7) === targetMonth);
+    const groups = new Map();
+    matched.forEach(report => { const month = String(report.createdAt || '').slice(0, 7) || '未标记月份'; groups.set(month, [...(groups.get(month) || []), report]); });
+    list.innerHTML = [...groups.entries()].map(([month, rows], index) => `<details style="margin-top:10px;border:1px solid #e2ecec;border-radius:10px;background:#fbfdfd;overflow:hidden" ${index === 0 ? 'open' : ''}><summary style="display:flex;justify-content:space-between;align-items:center;padding:11px 12px;color:#28515a;cursor:pointer;font-weight:700"><span>${textForHtml(month)} 月报</span><small style="color:#72878c;font-weight:600">${rows.length} 份</small></summary><div style="padding:0 12px">${rows.map(report => { const customer = reportCustomer(report); return `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${textForHtml(customer.name || '未指定客户')} · ${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })}</b><span>${report.data?.products?.length || 0} 个商品 · ${textForHtml(report.note || '未填写备注')}</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button></div>`; }).join('')}</div></details>`).join('') || '<p class="empty">该客户尚未生成月报。</p>';
+    list.querySelectorAll('.wb-report-row').forEach(row => {
+      const report = reports.find(item => item.id === row.dataset.reportId);
+      row.querySelector('.view').addEventListener('click', () => showReportPreview(report));
+      row.querySelector('.export').addEventListener('click', () => downloadReportSnapshot(report));
+    });
+  };
+  customerSelect.addEventListener('change', () => { monthSelect.value = ''; renderGrouped(); });
+  monthSelect.addEventListener('change', renderGrouped);
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  renderGrouped();
+  document.body.append(overlay);
+}
+
 function renderReportSnapshots(card) {
   createLocalApi().listReportSnapshots().then(reports => {
     const list = card.querySelector('.wb-report-list');
@@ -215,6 +267,7 @@ function showReportReadyDialog(snapshot) {
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
   overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>月报快照已生成</h2><p>当前数据已冻结为一份本机快照。现在可以直接导出 Excel，之后也可在“数据备份”中再次导出。</p><div class="wb-clear-actions"><button class="cancel" type="button">稍后导出</button><button class="confirm" type="button">导出 Excel</button></div></section>';
+  overlay.querySelector('p').textContent = '当前数据已冻结为本机月报快照。即使现在不导出，也可在“更多 → 客户月报”中随时在线查看或导出。';
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.confirm').addEventListener('click', () => { downloadReportSnapshot(snapshot); overlay.remove(); });
   document.body.append(overlay);
@@ -641,6 +694,19 @@ function installCustomerStatistics() {
 }
 
 let movementCustomerFilter = '';
+function installMovementMonthlyReportAction() {
+  const table = document.querySelector('.table-panel table');
+  const head = document.querySelector('.table-panel .table-head');
+  if (!table || !head || table.querySelector('thead th')?.textContent.trim() !== '单据编号' || !document.getElementById('wb-movement-customer-filter') || document.getElementById('wb-movement-report-button')) return;
+  const button = document.createElement('button');
+  button.id = 'wb-movement-report-button';
+  button.type = 'button';
+  button.className = 'secondary';
+  button.textContent = '查看月报';
+  button.addEventListener('click', () => showCustomerReportsDialog(movementCustomerFilter).catch(error => window.alert(error.message || '无法读取月报记录。')));
+  head.append(button);
+}
+
 function installMovementCustomerFilter() {
   const table = document.querySelector('.table-panel table');
   const head = document.querySelector('.table-panel .table-head');
@@ -744,6 +810,7 @@ function installPageActions() {
   installCustomerAlerts();
   installCustomerStatistics();
   installMovementCustomerFilter();
+  installMovementMonthlyReportAction();
   installProductRemarks();
 }
 
