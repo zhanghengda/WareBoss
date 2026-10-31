@@ -17,6 +17,7 @@ function injectStyle() {
     .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
     .wb-quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:18px 0}.wb-quick-action{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #dceaea;border-radius:13px;background:#fff;color:#254951;cursor:pointer;text-align:left;box-shadow:0 7px 18px rgba(16,58,67,.04)}.wb-quick-action i{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#e5f5f0;color:#117d70;font-size:21px;font-style:normal}.wb-quick-action.out i{background:#f1edff;color:#735cc0}.wb-quick-action b{display:block;font-size:15px}.wb-quick-action span{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-batch-dialog{width:min(100%,650px);max-height:90vh;overflow:auto}.wb-batch-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-batch-dialog input,.wb-batch-dialog select{width:100%;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-batch-items{margin-top:17px}.wb-batch-items h3{margin:0 0 8px;font-size:14px}.wb-batch-row{display:grid;grid-template-columns:minmax(0,1.5fr) 78px minmax(0,1fr) 36px;gap:8px;margin-top:8px;align-items:center}.wb-batch-row .remove{border:0;background:#fff0ef;color:#b95a56;border-radius:7px;height:36px;font-size:18px;cursor:pointer}.wb-add-line{margin-top:10px;border:1px dashed #82b9b1;background:#f3fbf9;color:#167869;border-radius:8px;padding:9px 11px;font-weight:700;cursor:pointer}.wb-batch-note{font-size:12px!important;font-weight:500!important;color:#6f8388!important}@media(max-width:640px){.wb-quick-actions{margin:12px 0;gap:9px}.wb-quick-action{padding:13px 11px;gap:9px}.wb-quick-action i{width:33px;height:33px;font-size:18px}.wb-quick-action b{font-size:13px}.wb-quick-action span{font-size:11px}.wb-batch-row{grid-template-columns:minmax(0,1fr) 66px 34px}.wb-batch-row input.note{display:none}}
     .wb-customer-filter{max-width:190px;border:1px solid #cbdadd;border-radius:7px;padding:6px 9px;background:#fff;color:#38545d;font:600 12px inherit}@media(max-width:640px){.wb-customer-filter{max-width:138px;font-size:11px}}
+    .wb-dashboard-scope{display:grid;gap:3px;color:#d9f4ef;font-size:11px;font-weight:700}.wb-dashboard-scope .wb-customer-filter{min-width:145px;max-width:190px}.wb-customer-stats{grid-column:1/-1}.wb-customer-stat-row{display:grid;grid-template-columns:minmax(0,1fr) 62px 62px 62px auto;align-items:center;gap:8px;padding:12px 0;border-top:1px solid #edf2f2}.wb-customer-stat-row:first-of-type{border-top:0}.wb-customer-stat-row b{font-size:14px}.wb-customer-stat-row span{font-size:12px;color:#667b81;text-align:center}.wb-customer-stat-row button{border:1px solid #b9ddd6;border-radius:7px;background:#eff9f6;color:#13796b;padding:6px 8px;font:700 12px inherit;cursor:pointer}.wb-movement-customer{display:block!important;color:#16786b!important;font-weight:700}@media(max-width:640px){.wb-dashboard-scope .wb-customer-filter{min-width:125px}.wb-customer-stat-row{grid-template-columns:minmax(0,1fr) 47px 47px 47px auto;gap:4px}.wb-customer-stat-row span{font-size:10px}.wb-customer-stat-row button{padding:5px;font-size:11px}}
     .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
     .wb-report-preview{width:min(1080px,100%);max-height:min(86vh,820px);overflow:auto;border-radius:18px;background:#f6f9f9;color:#243d45;box-shadow:0 25px 70px rgba(0,0,0,.35)}.wb-preview-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:#155a65;color:white}.wb-preview-head h2{margin:0;font-size:19px}.wb-preview-head p{margin:5px 0 0;color:#cae5e6;font-size:12px}.wb-preview-close{border:0;border-radius:8px;background:#ffffff20;color:white;padding:8px 11px;font-size:18px;cursor:pointer}.wb-preview-body{padding:20px}.wb-preview-note{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#e8f3f1;color:#48636a;font-size:13px;line-height:1.5}.wb-preview-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.wb-preview-metrics div{padding:13px;border:1px solid #dbe8e8;border-radius:10px;background:white}.wb-preview-metrics span{display:block;color:#71858b;font-size:12px}.wb-preview-metrics b{display:block;margin-top:5px;font-size:21px;color:#1c5961}.wb-preview-section{margin-top:18px;background:white;border:1px solid #dce9e9;border-radius:11px;overflow:hidden}.wb-preview-section h3{margin:0;padding:13px 15px;font-size:14px;background:#eef7f6}.wb-preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}.wb-preview-table th{padding:10px;background:#1b6b73;color:white;text-align:center}.wb-preview-table td{padding:9px 10px;border-bottom:1px solid #e8eeee;vertical-align:top}.wb-preview-table tr:last-child td{border-bottom:0}.wb-preview-table td.num{text-align:right;font-weight:700}.wb-preview-table td.note{min-width:160px;white-space:normal;color:#5a6f75}.wb-preview-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}.wb-preview-actions button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:600 14px inherit}@media(max-width:640px){.wb-preview-body{padding:13px}.wb-preview-head{padding:15px}.wb-preview-metrics{grid-template-columns:repeat(2,1fr)}.wb-preview-table{font-size:11px}.wb-preview-table th,.wb-preview-table td{padding:8px}.wb-report-preview{max-height:90vh}}
   `;
@@ -346,13 +347,17 @@ function installDashboardCustomerScope() {
   createLocalApi()('/partners').then(partners => {
     if (!partners.customers.length) return;
     dashboardCustomerId ||= partners.customers[0].id;
+    const scope = document.createElement('label');
+    scope.className = 'wb-dashboard-scope';
+    scope.textContent = '当前统计客户';
     const select = document.createElement('select');
     select.id = 'wb-dashboard-customer';
     select.className = 'wb-customer-filter';
     select.innerHTML = partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('');
     select.value = dashboardCustomerId;
     select.addEventListener('change', () => { dashboardCustomerId = select.value; latestFlowKey = ''; installHomeFlowStats(); refreshDashboardCustomerStats(dashboard); });
-    welcome.querySelector('.welcome-action')?.prepend(select);
+    scope.append(select);
+    welcome.querySelector('.welcome-action')?.prepend(scope);
     refreshDashboardCustomerStats(dashboard);
   });
 }
@@ -493,6 +498,54 @@ function installCustomerProductFilter() {
   }).finally(() => { loadingCustomerFilter = false; });
 }
 
+function openCustomerDashboard(customerId) {
+  dashboardCustomerId = customerId;
+  const dashboardButton = document.querySelector('.mobile-nav button:first-child, .side nav button:first-child');
+  dashboardButton?.click();
+  setTimeout(() => { document.getElementById('wb-dashboard-customer')?.dispatchEvent(new Event('change')); }, 30);
+}
+
+function installCustomerStatistics() {
+  const grid = document.querySelector('.partner-grid');
+  if (!grid || document.getElementById('wb-customer-stats')) return;
+  Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]).then(([partners, backup]) => {
+    if (!document.contains(grid)) return;
+    const card = document.createElement('article');
+    card.id = 'wb-customer-stats';
+    card.className = 'panel wb-customer-stats';
+    const data = backup.data;
+    card.innerHTML = `<div class="panel-title"><h3>客户统计列表</h3><span class="badge purple">${partners.customers.length} 家</span></div>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = data.movements.filter(item => item.customerId === customer.id); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-customer-stat-row"><b>${textForHtml(customer.name)}</b><span>商品<br/>${products.length}</span><span>入库<br/>${inbound}</span><span>出库<br/>${outbound}</span><button data-customer-id="${textForHtml(customer.id)}">看统计</button></div>`; }).join('') || '<p class="empty">尚未建立客户。</p>'}`;
+    card.querySelectorAll('button[data-customer-id]').forEach(button => button.addEventListener('click', () => openCustomerDashboard(button.dataset.customerId)));
+    grid.prepend(card);
+  });
+}
+
+let movementCustomerFilter = '';
+function installMovementCustomerFilter() {
+  const table = document.querySelector('.table-panel table');
+  const head = document.querySelector('.table-panel .table-head');
+  if (!table || !head || table.querySelector('thead th')?.textContent.trim() !== '单据编号' || document.getElementById('wb-movement-customer-filter')) return;
+  Promise.all([createLocalApi()('/partners'), createLocalApi()('/movements')]).then(([partners, movements]) => {
+    if (!document.contains(head)) return;
+    const select = document.createElement('select');
+    select.id = 'wb-movement-customer-filter'; select.className = 'wb-customer-filter';
+    select.innerHTML = partners.customers.length ? partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('') : '<option value="">暂无客户</option>';
+    movementCustomerFilter ||= partners.customers[0]?.id || '';
+    select.value = movementCustomerFilter;
+    const apply = () => {
+      movementCustomerFilter = select.value;
+      table.querySelectorAll('tbody tr').forEach(row => {
+        const id = row.cells[0]?.textContent.trim();
+        const movement = movements.find(item => item.id === id);
+        row.style.display = !movementCustomerFilter || movement?.customerId === movementCustomerFilter ? '' : 'none';
+        const productCell = row.cells[2];
+        if (movement && productCell && !productCell.querySelector('.wb-movement-customer')) { const mark = document.createElement('small'); mark.className = 'wb-movement-customer'; mark.textContent = `客户：${movement.customerName || '待指定'}`; productCell.append(mark); }
+      });
+    };
+    select.addEventListener('change', apply); head.append(select); apply();
+  });
+}
+
 let loadingProductRemarks = false;
 function installProductRemarks() {
   const table = document.querySelector('.table-panel table');
@@ -558,6 +611,8 @@ function installPageActions() {
   installDashboardQuickActions();
   installHomeFlowStats();
   installCustomerProductFilter();
+  installCustomerStatistics();
+  installMovementCustomerFilter();
   installProductRemarks();
   installMoreInitialization();
   installMoreReportGenerator();
