@@ -159,11 +159,35 @@ export function createLocalApi() {
   api.createReportSnapshot = async (note, snapshotData = null) => {
     const data = await state();
     const createdAt = new Date().toISOString();
-    const reportData = snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements };
-    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, note:String(note || '').slice(0, 120), data:clone(reportData) };
+    const reportData = clone(snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
+    const customer = reportData.customers?.length === 1 ? reportData.customers[0] : null;
+    const previous = customer ? data.reports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0] : null;
+    const periodStart = previous?.periodEnd || previous?.createdAt || '';
+    const periodStartTime = Date.parse(String(periodStart).replace(' ', 'T'));
+    if (customer && periodStart) reportData.movements = reportData.movements.filter(item => Date.parse(String(item.createdAt || '').replace(' ', 'T')) > periodStartTime);
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), data:clone(reportData) };
     data.reports.unshift(snapshot);
     await save(data);
     return clone(snapshot);
+  };
+  api.updateMovement = async (id, payload) => {
+    const data = await state();
+    const movement = data.movements.find(item => item.id === id);
+    if (!movement) throw new Error('出入库流水不存在');
+    const originalProduct = data.products.find(item => item.id === movement.productId);
+    const customer = data.customers.find(item => item.id === payload.customerId);
+    const product = data.products.find(item => item.id === payload.productId);
+    const quantity = Number(payload.quantity);
+    if (!originalProduct || !customer || !product || !['in','out'].includes(payload.type) || !Number.isFinite(quantity) || quantity <= 0) throw new Error('请完整填写修正内容');
+    if (product.customerId !== customer.id) throw new Error('修正后的商品必须归属所选客户');
+    originalProduct.stock += movement.type === 'in' ? -Number(movement.quantity) : Number(movement.quantity);
+    if (payload.type === 'out' && product.stock < quantity) { originalProduct.stock += movement.type === 'in' ? Number(movement.quantity) : -Number(movement.quantity); throw new Error('修正后库存不足，无法出库'); }
+    product.stock += payload.type === 'in' ? quantity : -quantity;
+    const unitPrice = Number(payload.price);
+    const price = Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : (payload.type === 'in' ? Number(product.cost || 0) : Number(product.price || 0));
+    Object.assign(movement, { type:payload.type, productId:product.id, productName:product.name, quantity, amount:+(quantity * price).toFixed(2), partner:String(payload.partner || '').trim() || (payload.type === 'out' ? customer.name : '未填写'), customerId:customer.id, customerName:customer.name, operator:String(payload.operator || '管理员').trim() || '管理员', note:String(payload.note || '').trim(), createdAt:String(payload.createdAt || movement.createdAt).replace('T', ' '), updatedAt:new Date().toISOString() });
+    await save(data);
+    return clone(movement);
   };
   api.deleteReportSnapshot = async id => {
     const data = await state();

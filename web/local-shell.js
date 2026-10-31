@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.13';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.13';
+import { createLocalApi } from './local-store.js?v=20261101.2';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261101.2';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -486,12 +486,20 @@ function installHomeFlowStats() {
   loadingFlowStats = true;
   createLocalApi().exportState().then(backup => {
     const data = backup.data;
-    const movements = data.movements.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
+    const reportCustomerId = report => report.customerId || report.data?.customers?.[0]?.id || '';
+    const periodStartFor = customerId => data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0]?.periodEnd || data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))[0]?.createdAt || '';
+    const movements = data.movements.filter(item => {
+      if (dashboardCustomerId && item.customerId !== dashboardCustomerId) return false;
+      const periodStart = periodStartFor(item.customerId);
+      return !periodStart || Date.parse(String(item.createdAt || '').replace(' ', 'T')) > Date.parse(String(periodStart).replace(' ', 'T'));
+    });
     const products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
     const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
     const key = `${inbound}/${outbound}/${stock}`;
+    const periodStart = dashboardCustomerId ? periodStartFor(dashboardCustomerId) : '';
+    card.querySelector('h3').textContent = dashboardCustomerId ? `当前客户 · ${periodStart ? `${String(periodStart).slice(0, 10)} 月结后` : '尚未月结'}库存汇总` : '全部客户 · 分客户当前账期库存汇总';
     if (key !== latestFlowKey) {
       latestFlowKey = key;
       const cells = card.querySelectorAll('tbody td');
@@ -704,7 +712,7 @@ function installMovementMonthlyReportAction() {
   button.className = 'secondary';
   button.textContent = '查看月报';
   button.addEventListener('click', () => showCustomerReportsDialog(movementCustomerFilter).catch(error => window.alert(error.message || '无法读取月报记录。')));
-  head.append(button);
+  (document.getElementById('wb-movement-filters') || head).append(button);
 }
 
 function installMovementCustomerFilter() {
@@ -715,20 +723,84 @@ function installMovementCustomerFilter() {
     if (!document.contains(head)) return;
     const select = document.createElement('select');
     select.id = 'wb-movement-customer-filter'; select.className = 'wb-customer-filter';
+    select.setAttribute('aria-label', '按客户筛选');
     select.innerHTML = `<option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
     select.value = movementCustomerFilter;
+    const month = document.createElement('input');
+    month.type = 'month'; month.id = 'wb-movement-month-filter'; month.className = 'wb-customer-filter'; month.title = '按月份查看'; month.setAttribute('aria-label', '按月份筛选');
+    const day = document.createElement('input');
+    day.type = 'date'; day.id = 'wb-movement-day-filter'; day.className = 'wb-customer-filter'; day.title = '按日期查看'; day.setAttribute('aria-label', '按日期筛选');
+    const reset = document.createElement('button');
+    reset.type = 'button'; reset.className = 'secondary wb-movement-reset'; reset.textContent = '重置';
     const apply = () => {
       movementCustomerFilter = select.value;
       table.querySelectorAll('tbody tr').forEach(row => {
         const id = row.cells[0]?.textContent.trim();
         const movement = movements.find(item => item.id === id);
-        row.style.display = !movementCustomerFilter || movement?.customerId === movementCustomerFilter ? '' : 'none';
+        const dateText = String(movement?.createdAt || '').replaceAll('/', '-');
+        const matchesCustomer = !movementCustomerFilter || movement?.customerId === movementCustomerFilter;
+        const matchesMonth = !month.value || dateText.startsWith(month.value);
+        const matchesDay = !day.value || dateText.startsWith(day.value);
+        row.style.display = matchesCustomer && matchesMonth && matchesDay ? '' : 'none';
         const productCell = row.cells[2];
         if (movement && productCell && !productCell.querySelector('.wb-movement-customer')) { const mark = document.createElement('small'); mark.className = 'wb-movement-customer'; mark.textContent = `客户：${movement.customerName || '待指定'}`; productCell.append(mark); }
       });
     };
-    select.addEventListener('change', apply); head.append(select); apply();
+    reset.addEventListener('click', () => { select.value = ''; month.value = ''; day.value = ''; apply(); });
+    const controls = document.createElement('div');
+    controls.id = 'wb-movement-filters'; controls.className = 'wb-movement-filters';
+    controls.innerHTML = '<span>筛选</span>';
+    controls.append(select, month, day, reset);
+    select.addEventListener('change', apply); month.addEventListener('change', apply); day.addEventListener('change', apply); head.append(controls); apply();
   });
+}
+
+async function showMovementEditDialog(movement) {
+  const [partners, products] = await Promise.all([createLocalApi()('/partners'), createLocalApi()('/products')]);
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  const currentPrice = Number(movement.quantity) ? +(Number(movement.amount || 0) / Number(movement.quantity)).toFixed(2) : '';
+  overlay.innerHTML = `<form class="wb-clear-dialog wb-movement-edit" role="dialog" aria-modal="true"><h2>修正出入库流水</h2><p>修正后会自动回算库存。已生成的历史月报快照不会被改写，如需更正历史月报请重新生成该客户月报。</p><label>客户<select name="customerId">${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}" ${customer.id === movement.customerId ? 'selected' : ''}>${textForHtml(customer.name)}</option>`).join('')}</select></label><label>业务类型<select name="type"><option value="in" ${movement.type === 'in' ? 'selected' : ''}>采购入库</option><option value="out" ${movement.type === 'out' ? 'selected' : ''}>销售出库</option></select></label><label>商品<select name="productId"></select></label><label>数量<input name="quantity" type="number" min="1" value="${Number(movement.quantity)}" required/></label><label>单价<input name="price" type="number" min="0" step="0.01" value="${currentPrice}"/></label><label>发生时间<input name="createdAt" type="datetime-local" value="${textForHtml(String(movement.createdAt || '').replace(' ', 'T').slice(0, 16))}"/></label><label>往来单位<input name="partner" value="${textForHtml(movement.partner || '')}"/></label><label>经办人<input name="operator" value="${textForHtml(movement.operator || '')}"/></label><label style="grid-column:1/-1">备注<input name="note" value="${textForHtml(movement.note || '')}"/></label><div class="wb-clear-actions" style="grid-column:1/-1"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对修正</button></div></form>`;
+  const form = overlay.querySelector('form');
+  const productSelect = form.elements.productId;
+  const renderProducts = selectedId => {
+    const customerId = form.elements.customerId.value;
+    productSelect.innerHTML = products.filter(product => product.customerId === customerId).map(product => `<option value="${textForHtml(product.id)}" ${product.id === selectedId ? 'selected' : ''}>${textForHtml(product.name)}（库存 ${Number(product.stock)}${textForHtml(product.unit)}）</option>`).join('');
+  };
+  renderProducts(movement.productId);
+  form.elements.customerId.addEventListener('change', () => renderProducts(''));
+  form.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(form));
+    const customer = partners.customers.find(item => item.id === values.customerId);
+    if (!customer || !values.productId) { window.alert('请选择客户和商品。'); return; }
+    const payload = { ...values, quantity:Number(values.quantity), price:values.price === '' ? undefined : Number(values.price), createdAt:values.createdAt ? values.createdAt.replace('T', ' ') : movement.createdAt };
+    overlay.remove();
+    showBatchConfirm({ type:payload.type, customerName:customer.name, items:[{ productId:payload.productId, quantity:payload.quantity }] }, () => createLocalApi().updateMovement(movement.id, payload));
+  });
+  document.body.append(overlay);
+}
+
+let loadingMovementEditor = false;
+function installMovementEditor() {
+  const table = document.querySelector('.table-panel table');
+  if (!table || table.querySelector('thead th')?.textContent.trim() !== '单据编号' || table.querySelector('.wb-movement-edit-heading') || loadingMovementEditor) return;
+  loadingMovementEditor = true;
+  createLocalApi()('/movements').then(movements => {
+    const header = document.createElement('th');
+    header.className = 'wb-movement-edit-heading';
+    header.textContent = '操作';
+    table.querySelector('thead tr').append(header);
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const movement = movements.find(item => item.id === row.cells[0]?.textContent.trim());
+      const cell = document.createElement('td');
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'secondary'; button.textContent = '修正';
+      button.addEventListener('click', () => showMovementEditDialog(movement).catch(error => window.alert(error.message || '无法打开修正窗口。')));
+      cell.append(button); row.append(cell);
+    });
+  }).finally(() => { loadingMovementEditor = false; });
 }
 
 let loadingProductRemarks = false;
@@ -811,6 +883,7 @@ function installPageActions() {
   installCustomerStatistics();
   installMovementCustomerFilter();
   installMovementMonthlyReportAction();
+  installMovementEditor();
   installProductRemarks();
 }
 
