@@ -55,10 +55,10 @@ function movementsFor(product, movements) {
   return movements.filter(item => item.productId === product.id);
 }
 
-export function createMonthlyReport(data) {
+export function createMonthlyReport(data, options = {}) {
   const products = [...(data.products || [])].sort((left, right) => `${left.category || ''}\u0000${left.sku || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || ''}`, 'zh-CN'));
   const movements = data.movements || [];
-  const now = new Date();
+  const now = options.reportDate ? new Date(options.reportDate) : new Date();
   const year = now.getFullYear(), month = now.getMonth() + 1;
   const ws = {};
   const border = { top:{style:'thin',color:{rgb:'95A5A6'}}, bottom:{style:'thin',color:{rgb:'95A5A6'}}, left:{style:'thin',color:{rgb:'95A5A6'}}, right:{style:'thin',color:{rgb:'95A5A6'}} };
@@ -101,7 +101,9 @@ export function createMonthlyReport(data) {
   ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:subtotalRows.length ? subtotalRows.map(item => `${letter}${item}`).join('+') : '0', s:subtotalStyle }; });
   ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
   Object.assign(ws, cell(`A${row + 1}`, `上期结存：${products.reduce((sum, product) => sum + Number(product.openingStock || 0), 0)}`), cell(`G${row + 1}`, '制表人：WareBoss'), cell(`G${row + 2}`, `日期：${year}.${month}.${new Date(year, month, 0).getDate()}`));
-  ws['!ref'] = `A1:H${row + 2}`;
+  const noteRow = options.snapshotNote ? row + 3 : row + 2;
+  if (options.snapshotNote) Object.assign(ws, cell(`A${noteRow}`, `报表备注：${String(options.snapshotNote).slice(0, 120)}`));
+  ws['!ref'] = `A1:H${noteRow}`;
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, ws, `${year}.${month - 1}报表`);
   workbook.Workbook = { CalcPr:{ calcMode:'auto' } };

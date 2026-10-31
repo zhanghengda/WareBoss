@@ -15,6 +15,7 @@ function injectStyle() {
     .wb-login-card h1{font-size:22px;margin:0 0 8px}.wb-login-card p{margin:0 0 22px;color:#a8c7ce;line-height:1.65;font-size:14px}.wb-login-card label{display:grid;gap:7px;margin-top:14px;font-size:13px;font-weight:700}.wb-login-card input{box-sizing:border-box;width:100%;border:1px solid #2d6170;border-radius:10px;padding:12px;color:#ecfbff;background:#0a2530;font:inherit;outline:none}.wb-login-card input:focus{border-color:#63d7cf;box-shadow:0 0 0 3px rgba(99,215,207,.15)}.wb-login-card button{width:100%;margin-top:22px;border:0;border-radius:10px;padding:12px;background:#20a69b;color:white;font:700 15px inherit;cursor:pointer}.wb-login-error{min-height:19px;margin:10px 0 -11px;color:#ffaaa2;font-size:13px}.wb-account-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8e7ea;border-radius:9px;padding:7px 9px;background:white;color:#31505a;font-size:12px}.wb-account-chip button{border:0;border-left:1px solid #d8e7ea;background:transparent;color:#49717b;padding-left:8px;cursor:pointer;font:inherit}.wb-clear-overlay{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:rgba(2,16,22,.66)}.wb-clear-dialog{width:min(100%,400px);border-radius:18px;background:white;padding:26px;color:#1d3942;box-shadow:0 25px 70px rgba(0,0,0,.3)}.wb-clear-dialog h2{margin:0 0 10px;font-size:20px}.wb-clear-dialog p{line-height:1.65;color:#5d7178}.wb-clear-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.wb-clear-actions button{border:0;border-radius:9px;padding:10px 14px;font:700 14px inherit;cursor:pointer}.wb-clear-actions .cancel{background:#eaf0f1;color:#42606a}.wb-clear-actions .confirm{background:#d95252;color:white}@media(max-width:640px){.wb-login-card{padding:28px 22px}.wb-account-chip{position:fixed;right:12px;top:10px;z-index:20}.wb-account-chip span{display:none}}
     .wb-excel-card{border-color:#c7e2dd!important}.wb-excel-card h3:before{content:'XLSX';display:inline-block;margin-right:7px;border-radius:4px;padding:2px 4px;background:#1d856f;color:#fff;font-size:9px;vertical-align:2px}
     .wb-flow-summary{margin:18px 0;background:#fff;border:1px solid #dbe9eb;border-radius:14px;box-shadow:0 8px 20px rgba(16,58,67,.05);overflow:hidden}.wb-flow-summary h3{margin:0;padding:13px 17px;font-size:14px;color:#294b53;border-bottom:1px solid #e7eff0}.wb-flow-summary table{width:100%;border-collapse:collapse;table-layout:fixed}.wb-flow-summary th{padding:10px;background:#f3f9f8;color:#658087;font-size:12px;font-weight:600;text-align:center}.wb-flow-summary td{padding:14px;color:#193e47;font-size:22px;font-weight:800;text-align:center;border-left:1px solid #e5eeee}.wb-flow-summary td:first-child{border-left:0}.wb-flow-summary td.in{color:#168678}.wb-flow-summary td.out{color:#bf674b}.wb-flow-summary td.stock{color:#24708f}@media(max-width:640px){.wb-flow-summary{margin:12px 0}.wb-flow-summary h3{padding:11px 13px}.wb-flow-summary th{padding:8px;font-size:11px}.wb-flow-summary td{padding:11px 6px;font-size:18px}}
+    .wb-report-card{border-color:#d9d6f0!important}.wb-report-list{margin-top:15px;border-top:1px solid #e8e8f2}.wb-report-row{padding:12px 0;border-bottom:1px solid #eef0f3}.wb-report-row:last-child{border-bottom:0}.wb-report-row b{display:block;font-size:13px;color:#324c58}.wb-report-row span{display:block;margin-top:4px;font-size:12px;color:#75868d;line-height:1.45}.wb-report-row button{margin:8px 8px 0 0!important;padding:7px 10px!important;font-size:12px!important}.wb-report-row .remove{border:0;background:transparent;color:#bb5a57;cursor:pointer}.wb-note-cell{max-width:190px;color:#62747a;font-size:12px;line-height:1.45;white-space:normal!important}
   `;
   document.head.append(style);
 }
@@ -83,6 +84,75 @@ function downloadExcel() {
   }).catch(() => window.alert('Excel 导出失败，请稍后重试。'));
 }
 
+function downloadReportSnapshot(snapshot) {
+  const bytes = createMonthlyReport(snapshot.data, { reportDate:snapshot.createdAt, snapshotNote:snapshot.note });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  link.download = `wareboss-${snapshot.createdAt.slice(0, 10)}-月报快照.xlsx`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+const textForHtml = value => String(value || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+function renderReportSnapshots(card) {
+  createLocalApi().listReportSnapshots().then(reports => {
+    const list = card.querySelector('.wb-report-list');
+    if (!reports.length) { list.innerHTML = '<span>尚未生成月报快照。</span>'; return; }
+    list.innerHTML = reports.map(report => `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })} 的月报快照</b><span>${textForHtml(report.note || '未填写备注')}</span><button type="button" class="secondary export">导出 Excel</button><button type="button" class="remove">删除</button></div>`).join('');
+    list.querySelectorAll('.wb-report-row').forEach(row => {
+      const report = reports.find(item => item.id === row.dataset.reportId);
+      row.querySelector('.export').addEventListener('click', () => downloadReportSnapshot(report));
+      row.querySelector('.remove').addEventListener('click', () => showDeleteReportDialog(report, card));
+    });
+  });
+}
+
+function showDeleteReportDialog(report, card) {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>删除月报快照？</h2><p>删除后将无法从本机导出这份历史快照，已下载的 Excel 文件不会受影响。</p><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认删除</button></div></section>';
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', async event => {
+    event.currentTarget.disabled = true;
+    try { await createLocalApi().deleteReportSnapshot(report.id); overlay.remove(); renderReportSnapshots(card); } catch (_) { event.currentTarget.disabled = false; }
+  });
+  document.body.append(overlay);
+}
+
+function showCreateReportDialog(card) {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>生成月报快照</h2><p>将冻结当前商品、出入库和结存数据。之后的数据变动不会影响这份月报。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">备注（可选）<textarea rows="3" maxlength="120" placeholder="例如：10 月盘点后月报" style="resize:vertical;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"></textarea></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认生成</button></div></section>';
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', async event => {
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = '生成中…';
+    try { const snapshot = await createLocalApi().createReportSnapshot(overlay.querySelector('textarea').value.trim()); overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot); } catch (_) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
+  });
+  document.body.append(overlay);
+}
+
+function showReportReadyDialog(snapshot) {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = '<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>月报快照已生成</h2><p>当前数据已冻结为一份本机快照。现在可以直接导出 Excel，之后也可在“数据备份”中再次导出。</p><div class="wb-clear-actions"><button class="cancel" type="button">稍后导出</button><button class="confirm" type="button">导出 Excel</button></div></section>';
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.confirm').addEventListener('click', () => { downloadReportSnapshot(snapshot); overlay.remove(); });
+  document.body.append(overlay);
+}
+
+function installReportSnapshotActions() {
+  const grid = document.querySelector('.backup-page .backup-grid');
+  if (!grid || document.getElementById('wb-report-card')) return;
+  const card = document.createElement('article');
+  card.id = 'wb-report-card';
+  card.className = 'panel backup-card wb-report-card';
+  card.innerHTML = '<h3>月报快照</h3><p>生成后冻结当前库存数据，之后可随时导出 Excel 月报。</p><button class="primary" type="button">生成月报快照</button><div class="wb-report-list"></div>';
+  card.querySelector('.primary').addEventListener('click', () => showCreateReportDialog(card));
+  grid.prepend(card);
+  renderReportSnapshots(card);
+}
+
 function showExcelImportDialog(candidate) {
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
@@ -127,6 +197,17 @@ function installMoreInitialization() {
   button.type = 'button';
   button.innerHTML = '<i>⇅</i><span>初始化数据</span><b>›</b>';
   button.addEventListener('click', showInitializeDialog);
+  sheet.prepend(button);
+}
+
+function installMoreReportGenerator() {
+  const sheet = document.querySelector('.more-sheet');
+  if (!sheet || document.getElementById('wb-report-menu')) return;
+  const button = document.createElement('button');
+  button.id = 'wb-report-menu';
+  button.type = 'button';
+  button.innerHTML = '<i>▤</i><span>生成月报</span><b>›</b>';
+  button.addEventListener('click', () => showCreateReportDialog(null));
   sheet.prepend(button);
 }
 
@@ -181,6 +262,34 @@ function installHomeFlowStats() {
   }).finally(() => { loadingFlowStats = false; });
 }
 
+let loadingProductRemarks = false;
+function installProductRemarks() {
+  const table = document.querySelector('.table-panel table');
+  if (!table || table.querySelector('thead th')?.textContent.trim() !== '商品信息' || loadingProductRemarks) return;
+  const headerRow = table.querySelector('thead tr');
+  if (!headerRow.querySelector('.wb-remark-heading')) {
+    const header = document.createElement('th');
+    header.className = 'wb-remark-heading';
+    header.textContent = '备注';
+    headerRow.append(header);
+  }
+  loadingProductRemarks = true;
+  createLocalApi()('/products').then(products => {
+    table.querySelectorAll('tbody tr').forEach(row => {
+      if (row.querySelector('.wb-note-cell')) return;
+      const cells = row.querySelectorAll('td');
+      const name = cells[0]?.querySelector('b')?.textContent.trim();
+      const sku = cells[0]?.querySelector('small')?.textContent.trim();
+      const category = cells[1]?.textContent.trim();
+      const product = products.find(item => item.name === name && item.sku === sku && item.category === category);
+      const note = document.createElement('td');
+      note.className = 'wb-note-cell';
+      note.textContent = product?.remark || '—';
+      row.append(note);
+    });
+  }).finally(() => { loadingProductRemarks = false; });
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .import-button');
   const backupInput = document.querySelector('.backup-page input[type="file"]');
@@ -194,8 +303,11 @@ function installPageActions() {
     clearButton.addEventListener('click', event => { event.preventDefault(); event.stopImmediatePropagation(); showClearDialog(); }, true);
   }
   installExcelActions();
+  installReportSnapshotActions();
   installHomeFlowStats();
+  installProductRemarks();
   installMoreInitialization();
+  installMoreReportGenerator();
 }
 
 export function installLocalShell() {

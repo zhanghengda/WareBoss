@@ -2,9 +2,10 @@ const DB_NAME = 'wareboss-local';
 const STORE_NAME = 'state';
 const STATE_ID = 'main';
 
-const emptyState = () => ({ products: [], suppliers: [], customers: [], movements: [] });
+const emptyState = () => ({ products: [], suppliers: [], customers: [], movements: [], reports: [] });
 const clone = value => JSON.parse(JSON.stringify(value));
 const now = () => new Intl.DateTimeFormat('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(new Date()).replaceAll('/','-').replace(',','');
+const normalizeState = value => ({ ...emptyState(), ...(value || {}), reports:Array.isArray(value?.reports) ? value.reports : [] });
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -24,7 +25,7 @@ export function createLocalApi() {
   async function state() {
     const connection = await db();
     const record = await requestResult(connection.transaction(STORE_NAME).objectStore(STORE_NAME).get(STATE_ID));
-    if (record) return record.value;
+    if (record) return normalizeState(record.value);
     const value = emptyState();
     await save(value);
     return value;
@@ -80,7 +81,21 @@ export function createLocalApi() {
   api.importState = async backup => {
     const data = backup?.data || backup;
     if (!data || !['products','suppliers','customers','movements'].every(key => Array.isArray(data[key]))) throw new Error('备份文件格式不正确');
-    await save({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
+    await save({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements, reports:Array.isArray(data.reports) ? data.reports : [] });
+  };
+  api.listReportSnapshots = async () => clone((await state()).reports);
+  api.createReportSnapshot = async note => {
+    const data = await state();
+    const createdAt = new Date().toISOString();
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, note:String(note || '').slice(0, 120), data:clone({ products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements }) };
+    data.reports.unshift(snapshot);
+    await save(data);
+    return clone(snapshot);
+  };
+  api.deleteReportSnapshot = async id => {
+    const data = await state();
+    data.reports = data.reports.filter(item => item.id !== id);
+    await save(data);
   };
   api.clearState = async () => { await save(emptyState()); };
   return api;
