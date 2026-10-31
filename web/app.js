@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261031.3';
-import { installLocalShell } from './local-shell.js?v=20261031.3';
+import { createLocalApi } from './local-store.js?v=20261031.4';
+import { installLocalShell } from './local-shell.js?v=20261031.4';
 
 const api = createLocalApi();
 installLocalShell();
@@ -43,7 +43,7 @@ installLocalShell();
       ,backup:'<svg viewBox="0 0 24 24"><path d="M12 3v11m-4-4 4 4 4-4M5 17v3h14v-3"/><path d="M5 8V5h14v3"/></svg>',
       more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
     };
-    const nav=[['dashboard','dashboard'],['products','products'],['inbound','inbound'],['outbound','outbound'],['movements','movements'],['backup','backup'],['partners','partners']];
+    const nav=[['dashboard','dashboard'],['products','products'],['movements','movements'],['backup','backup'],['inbound','inbound'],['outbound','outbound'],['partners','partners']];
     onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,mobileMore,form,busy,toast,backupInput,pages,filtered,customerProducts,fmt,open,syncMoveCustomer,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
   },
   template:`

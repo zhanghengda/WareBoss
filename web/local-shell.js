@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.3';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.3';
+import { createLocalApi } from './local-store.js?v=20261031.4';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.4';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -557,8 +557,7 @@ function installMovementCustomerFilter() {
     if (!document.contains(head)) return;
     const select = document.createElement('select');
     select.id = 'wb-movement-customer-filter'; select.className = 'wb-customer-filter';
-    select.innerHTML = partners.customers.length ? partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('') : '<option value="">暂无客户</option>';
-    movementCustomerFilter ||= partners.customers[0]?.id || '';
+    select.innerHTML = `<option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
     select.value = movementCustomerFilter;
     const apply = () => {
       movementCustomerFilter = select.value;
