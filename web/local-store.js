@@ -157,6 +157,15 @@ export function createLocalApi() {
     data.reports = data.reports.filter(report => !report.data?.products?.some(item => item.customerId === customerId));
     await save(data);
   };
+  api.assignUnassignedCustomer = async customerId => {
+    const data = await state();
+    const customer = data.customers.find(item => item.id === customerId);
+    if (!customer) throw new Error('客户不存在');
+    data.products.forEach(product => { if (!product.customerId) { product.customerId = customer.id; product.customerName = customer.name; } });
+    data.movements.forEach(item => { if (!item.customerId) { item.customerId = customer.id; item.customerName = customer.name; } });
+    data.reports.forEach(report => { report.data?.products?.forEach(product => { if (!product.customerId) { product.customerId = customer.id; product.customerName = customer.name; } }); report.data?.movements?.forEach(item => { if (!item.customerId) { item.customerId = customer.id; item.customerName = customer.name; } }); });
+    await save(data);
+  };
   api.clearState = async () => { await save(emptyState()); };
   return api;
 }
