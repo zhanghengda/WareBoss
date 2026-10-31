@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261031.2';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.2';
+import { createLocalApi } from './local-store.js?v=20261031.3';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261031.3';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -621,6 +621,15 @@ function enableAutomaticUpdates() {
   document.addEventListener('click', () => setTimeout(reloadWhenSafe, 0));
 }
 
+function enablePageTopReset() {
+  if (document.documentElement.dataset.wbTopReset) return;
+  document.documentElement.dataset.wbTopReset = 'true';
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.mobile-nav button, .side nav button, .more-sheet button')) return;
+    setTimeout(() => window.scrollTo({ top:0, left:0, behavior:'auto' }), 0);
+  });
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .import-button');
   const backupInput = document.querySelector('.backup-page input[type="file"]');
@@ -651,6 +660,7 @@ function installPageActions() {
 export function installLocalShell() {
   injectStyle();
   enableAutomaticUpdates();
+  enablePageTopReset();
   const refresh = () => { installAccountChip(); installPageActions(); };
   new MutationObserver(refresh).observe(document.body, { childList:true, subtree:true });
   if (ACCOUNTS[localStorage.getItem(SESSION_KEY)]) setTimeout(refresh, 0); else showLogin();
