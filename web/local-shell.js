@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261101.4';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261101.4';
+import { createLocalApi } from './local-store.js?v=20261101.5';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261101.5';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -719,6 +719,7 @@ function installMovementCustomerFilter() {
   const table = document.querySelector('.table-panel table');
   const head = document.querySelector('.table-panel .table-head');
   if (!table || !head || table.querySelector('thead th')?.textContent.trim() !== '单据编号' || document.getElementById('wb-movement-customer-filter')) return;
+  table.classList.add('wb-movement-table');
   head.classList.add('wb-movement-head');
   Promise.all([createLocalApi()('/partners'), createLocalApi()('/movements')]).then(([partners, movements]) => {
     if (!document.contains(head)) return;
