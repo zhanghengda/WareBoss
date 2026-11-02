@@ -161,20 +161,24 @@ export function createLocalApi() {
     return { productCount:products.length, movementCount:movements.length };
   };
   api.listReportSnapshots = async () => clone((await state()).reports);
-  api.createReportSnapshot = async (note, snapshotData = null) => {
+  api.createReportSnapshot = async (note, snapshotData = null, options = {}) => {
     const data = await state();
     const createdAt = now();
+    const reportMonth = /^\d{4}-\d{2}$/.test(String(options.reportMonth || '')) ? String(options.reportMonth) : createdAt.slice(0, 7);
+    const replaceReportId = String(options.replaceReportId || '');
+    const activeReports = data.reports.filter(report => report.id !== replaceReportId);
     const reportData = clone(snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
     const customer = reportData.customers?.length === 1 ? reportData.customers[0] : null;
-    const previous = customer ? data.reports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => timeOf(right.periodEnd || right.createdAt) - timeOf(left.periodEnd || left.createdAt))[0] : null;
+    const previous = customer ? activeReports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => timeOf(right.periodEnd || right.createdAt) - timeOf(left.periodEnd || left.createdAt))[0] : null;
     const periodStart = previous?.periodEnd || previous?.createdAt || '';
     const closedMovementIds = customer ? reportData.movements.filter(item => item.customerId === customer.id).map(item => item.id).filter(Boolean) : [];
     const previousClosedIds = new Set(previous?.closedMovementIds || []);
     if (customer && previousClosedIds.size) reportData.movements = reportData.movements.filter(item => !previousClosedIds.has(item.id));
     else if (customer && periodStart) reportData.movements = reportData.movements.filter(item => isAfterPeriodStart(item.createdAt, periodStart));
     const nextPeriodOpening = reportData.products.map(product => ({ productId:product.id, productName:product.name, quantity:Number(product.stock || 0), unit:product.unit || '' }));
-    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), closedMovementIds, nextPeriodOpening, data:clone(reportData) };
-    data.reports.unshift(snapshot);
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, reportMonth, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), closedMovementIds, nextPeriodOpening, data:clone(reportData) };
+    activeReports.unshift(snapshot);
+    data.reports = activeReports;
     await save(data);
     return clone(snapshot);
   };

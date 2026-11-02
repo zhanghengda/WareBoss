@@ -1,8 +1,14 @@
-import { createLocalApi } from './local-store.js?v=20261102.7';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.7';
+import { createLocalApi } from './local-store.js?v=20261102.8';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.8';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
+const reportMonthOf = report => report.reportMonth || String(report.periodEnd || report.createdAt || '').slice(0, 7);
+async function saveCustomerReport(api, customer, reportData, note, reportMonth) {
+  const sameMonth = (await api.listReportSnapshots()).find(report => (report.customerId || report.data?.customers?.[0]?.id) === customer.id && reportMonthOf(report) === reportMonth);
+  if (sameMonth && !window.confirm(`客户“${customer.name}”已有 ${reportMonth} 月报。是否覆盖原有快照？\n覆盖只替换该月报，不会删除商品、库存或出入库流水。`)) return null;
+  return api.createReportSnapshot(`客户：${customer.name}${note ? `；${note}` : ''}`, reportData, { reportMonth, replaceReportId:sameMonth?.id || '' });
+}
 
 function injectStyle() {
   if (document.getElementById('wb-local-shell-style')) return;
@@ -111,7 +117,7 @@ async function showCustomerExportDialog() {
 }
 
 function downloadReportSnapshot(snapshot) {
-  const bytes = createMonthlyReport(snapshot.data, { reportDate:snapshot.createdAt, snapshotNote:snapshot.note });
+  const bytes = createMonthlyReport(snapshot.data, { reportDate:snapshot.reportMonth ? `${snapshot.reportMonth}-01` : snapshot.createdAt, snapshotNote:snapshot.note });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   link.download = `wareboss-${snapshot.createdAt.slice(0, 10)}-月报快照.xlsx`;
@@ -179,14 +185,14 @@ async function showCustomerReportsDialog(initialCustomerId = '') {
   const renderGrouped = () => {
     const selectedCustomerId = customerSelect.value;
     const byCustomer = reports.filter(report => !selectedCustomerId || reportCustomer(report).id === selectedCustomerId);
-    const months = [...new Set(byCustomer.map(report => String(report.createdAt || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+    const months = [...new Set(byCustomer.map(reportMonthOf).filter(Boolean))].sort().reverse();
     const previousMonth = monthSelect.value;
     monthSelect.innerHTML = `<option value="">最近月份${months[0] ? `（${months[0]}）` : ''}</option><option value="all">全部月份</option>${months.map(month => `<option value="${month}">${month}</option>`).join('')}`;
     if (previousMonth && [...monthSelect.options].some(option => option.value === previousMonth)) monthSelect.value = previousMonth;
     const targetMonth = monthSelect.value === 'all' ? '' : (monthSelect.value || months[0] || '');
-    const matched = byCustomer.filter(report => !targetMonth || String(report.createdAt || '').slice(0, 7) === targetMonth);
+    const matched = byCustomer.filter(report => !targetMonth || reportMonthOf(report) === targetMonth);
     const groups = new Map();
-    matched.forEach(report => { const month = String(report.createdAt || '').slice(0, 7) || '未标记月份'; groups.set(month, [...(groups.get(month) || []), report]); });
+    matched.forEach(report => { const month = reportMonthOf(report) || '未标记月份'; groups.set(month, [...(groups.get(month) || []), report]); });
     list.innerHTML = [...groups.entries()].map(([month, rows], index) => `<details style="margin-top:10px;border:1px solid #e2ecec;border-radius:10px;background:#fbfdfd;overflow:hidden" ${index === 0 ? 'open' : ''}><summary style="display:flex;justify-content:space-between;align-items:center;padding:11px 12px;color:#28515a;cursor:pointer;font-weight:700"><span>${textForHtml(month)} 月报</span><small style="color:#72878c;font-weight:600">${rows.length} 份</small></summary><div style="padding:0 12px">${rows.map(report => { const customer = reportCustomer(report); return `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${textForHtml(customer.name || '未指定客户')} · ${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })}</b><span>${report.data?.products?.length || 0} 个商品 · ${textForHtml(report.note || '未填写备注')}</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button></div>`; }).join('')}</div></details>`).join('') || '<p class="empty">该客户尚未生成月报。</p>';
     list.querySelectorAll('.wb-report-row').forEach(row => {
       const report = reports.find(item => item.id === row.dataset.reportId);
@@ -205,7 +211,7 @@ function renderReportSnapshots(card) {
   createLocalApi().listReportSnapshots().then(reports => {
     const list = card.querySelector('.wb-report-list');
     if (!reports.length) { list.innerHTML = '<span>尚未生成月报快照。</span>'; return; }
-    list.innerHTML = reports.map(report => `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })} 的月报快照</b><span>${textForHtml(report.note || '未填写备注')} · ${report.data?.products?.length || 0} 个商品</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button><button type="button" class="remove">删除</button></div>`).join('');
+    list.innerHTML = reports.map(report => `<div class="wb-report-row" data-report-id="${textForHtml(report.id)}"><b>${textForHtml(reportMonthOf(report) || '未标记')} 月报 · ${new Date(report.createdAt).toLocaleString('zh-CN', { hour12:false })}</b><span>${textForHtml(report.note || '未填写备注')} · ${report.data?.products?.length || 0} 个商品</span><button type="button" class="secondary view">在线查看</button><button type="button" class="secondary export">导出 Excel</button><button type="button" class="remove">删除</button></div>`).join('');
     list.querySelectorAll('.wb-report-row').forEach(row => {
       const report = reports.find(item => item.id === row.dataset.reportId);
       row.querySelector('.view').addEventListener('click', () => showReportPreview(report));
@@ -232,10 +238,14 @@ async function showCreateReportDialog(card) {
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
   overlay.innerHTML = `<section class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>生成客户月报快照</h2><p>选择客户后，将冻结该客户当前的商品、出入库和结存数据。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">客户<select class="customer" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"><option value="">请选择客户</option>${partners.customers.map(item => `<option value="${textForHtml(item.id)}">${textForHtml(item.name)}</option>`).join('')}</select></label><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">备注（可选）<textarea rows="3" maxlength="120" placeholder="例如：10 月盘点后月报" style="resize:vertical;border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"></textarea></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">确认生成</button></div></section>`;
+  const reportMonthField = document.createElement('label');
+  reportMonthField.style.cssText = 'display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d';
+  reportMonthField.innerHTML = `账期月份<input class="report-month" type="month" value="${new Date().toISOString().slice(0, 7)}" required style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/>`;
+  overlay.querySelector('.customer').closest('label').after(reportMonthField);
   const customerNameField = document.createElement('label');
   customerNameField.style.cssText = 'display:grid;gap:7px;margin-top:12px;font-weight:600;color:#38545d';
   customerNameField.innerHTML = '没有客户？直接填写客户名称<input class="customer-name" placeholder="旧数据会归属到此客户" style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/>';
-  overlay.querySelector('.customer').closest('label').after(customerNameField);
+  reportMonthField.after(customerNameField);
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     const customerName = overlay.querySelector('.customer-name').value.trim();
@@ -250,15 +260,17 @@ async function showCreateReportDialog(card) {
       const current = await api.exportState();
       const data = current.data, reportData = { ...data, customers:[customer], products:data.products.filter(item => item.customerId === customer.id), movements:data.movements.filter(item => item.customerId === customer.id) };
       if (!reportData.products.length) throw new Error('该客户暂无库存数据，无法生成月报');
-      const note = overlay.querySelector('textarea').value.trim();
-      const snapshot = await api.createReportSnapshot(`客户：${customer.name}${note ? `；${note}` : ''}`, reportData);
+      const note = overlay.querySelector('textarea').value.trim(), reportMonth = overlay.querySelector('.report-month').value;
+      if (!reportMonth) throw new Error('请选择账期月份');
+      const snapshot = await saveCustomerReport(api, customer, reportData, note, reportMonth);
+      if (!snapshot) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; return; }
       overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot);
     } catch (error) { window.alert(error.message || '生成失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
   }, true);
   overlay.querySelector('.confirm').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     event.currentTarget.textContent = '生成中…';
-    try { const customer = partners.customers.find(item => item.id === overlay.querySelector('.customer').value); if (!customer) throw new Error('请选择客户'); const data = backup.data; const reportData = { ...data, customers:[customer], products:data.products.filter(item => item.customerId === customer.id), movements:data.movements.filter(item => item.customerId === customer.id) }; if (!reportData.products.length) throw new Error('该客户暂无库存数据，无法生成月报'); const note = overlay.querySelector('textarea').value.trim(); const snapshot = await createLocalApi().createReportSnapshot(`客户：${customer.name}${note ? `；${note}` : ''}`, reportData); overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot); } catch (error) { window.alert(error.message || '生成失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
+    try { const customer = partners.customers.find(item => item.id === overlay.querySelector('.customer').value); if (!customer) throw new Error('请选择客户'); const data = backup.data; const reportData = { ...data, customers:[customer], products:data.products.filter(item => item.customerId === customer.id), movements:data.movements.filter(item => item.customerId === customer.id) }; if (!reportData.products.length) throw new Error('该客户暂无库存数据，无法生成月报'); const note = overlay.querySelector('textarea').value.trim(), reportMonth = overlay.querySelector('.report-month').value; if (!reportMonth) throw new Error('请选择账期月份'); const snapshot = await saveCustomerReport(createLocalApi(), customer, reportData, note, reportMonth); if (!snapshot) { event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; return; } overlay.remove(); if (card) renderReportSnapshots(card); showReportReadyDialog(snapshot); } catch (error) { window.alert(error.message || '生成失败，请重试。'); event.currentTarget.disabled = false; event.currentTarget.textContent = '确认生成'; }
   });
   document.body.append(overlay);
 }
