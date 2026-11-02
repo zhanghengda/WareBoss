@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.12';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.12';
+import { createLocalApi } from './local-store.js?v=20261102.13';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.13';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -758,7 +758,8 @@ function movementReportTimestamp(value) {
   return Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
 }
 function movementReportExportData(data, customerId, rows) {
-  const products = data.products.filter(item => !customerId || item.customerId === customerId).map(product => {
+  const productIds = new Set(rows.map(item => item.productId));
+  const products = data.products.filter(item => (!customerId || item.customerId === customerId) && productIds.has(item.id)).map(product => {
     const movements = rows.filter(item => item.productId === product.id);
     const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
@@ -772,7 +773,7 @@ function buildMovementReport(customerName, label, rows, products, exportData, re
   const inAmount = inbound.reduce((sum, item) => sum + Number(item.amount || 0), 0), outAmount = outbound.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
   const summary = `<section class="wb-flow-report-summary"><div><span>流水笔数</span><b>${rows.length}</b></div><div><span>入库数量</span><b class="in">${inQty}</b><small>¥${inAmount.toFixed(2)}</small></div><div><span>出库数量</span><b class="out">${outQty}</b><small>¥${outAmount.toFixed(2)}</small></div><div><span>当前库存</span><b class="stock">${stock}</b><small>${products.length} 个商品</small></div></section>`;
-  const stockTable = `<section class="wb-flow-report-table wb-flow-stock-table"><h4>当前库存明细</h4><table><thead><tr><th>系列</th><th>型号</th><th>规格</th><th>当前库存</th><th>单位</th><th>备注</th></tr></thead><tbody>${[...products].sort((left, right) => `${left.category || ''}\u0000${left.sku || left.name || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || right.name || ''}`, 'zh-CN')).map(item => `<tr><td>${textForHtml(item.category || '—')}</td><td>${textForHtml(item.sku || item.name || '—')}</td><td>${textForHtml(item.spec || '—')}</td><td class="stock">${Number(item.stock || 0)}</td><td>${textForHtml(item.unit || '件')}</td><td>${textForHtml(item.remark || '—')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">该客户暂无库存商品。</td></tr>'}</tbody></table></section>`;
+  const stockTable = `<section class="wb-flow-report-table wb-flow-stock-table"><h4>本次流水商品的当前库存</h4><table><thead><tr><th>系列</th><th>型号</th><th>规格</th><th>当前库存</th><th>单位</th><th>备注</th></tr></thead><tbody>${[...products].sort((left, right) => `${left.category || ''}\u0000${left.sku || left.name || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || right.name || ''}`, 'zh-CN')).map(item => `<tr><td>${textForHtml(item.category || '—')}</td><td>${textForHtml(item.sku || item.name || '—')}</td><td>${textForHtml(item.spec || '—')}</td><td class="stock">${Number(item.stock || 0)}</td><td>${textForHtml(item.unit || '件')}</td><td>${textForHtml(item.remark || '—')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">该时间范围内暂无发生过流水的商品。</td></tr>'}</tbody></table></section>`;
   const table = `<section class="wb-flow-report-table"><table><thead><tr><th>时间</th><th>类型</th><th>商品</th><th>数量</th><th>金额</th><th>客户 / 往来</th><th>备注</th></tr></thead><tbody>${rows.map(item => `<tr><td>${textForHtml(item.createdAt || '')}</td><td class="${item.type}">${item.type === 'in' ? '入库' : '出库'}</td><td>${textForHtml(item.productName || '')}</td><td>${item.type === 'in' ? '+' : '-'}${Number(item.quantity || 0)}</td><td>¥${Number(item.amount || 0).toFixed(2)}</td><td>${textForHtml(item.customerName || customerName || '')}<small>${textForHtml(item.partner || '')}</small></td><td>${textForHtml(item.note || '—')}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">该时间范围内暂无出入库流水。</td></tr>'}</tbody></table></section>`;
   return { summary, stockTable, table, title:`出入库流水报表 · ${textForHtml(customerName || '全部客户')}`, customerName:customerName || '全部客户', label, exportData, reportDate };
 }
@@ -808,7 +809,8 @@ async function showMovementReportDialog() {
       const timestamp = movementReportTimestamp(item.createdAt);
       return (!customer.value || item.customerId === customer.value) && Number.isFinite(timestamp) && timestamp >= period.start && timestamp <= period.end;
     }).sort((left, right) => movementReportTimestamp(right.createdAt) - movementReportTimestamp(left.createdAt));
-    const products = data.products.filter(item => !customer.value || item.customerId === customer.value);
+    const productIds = new Set(rows.map(item => item.productId));
+    const products = data.products.filter(item => (!customer.value || item.customerId === customer.value) && productIds.has(item.id));
     report = buildMovementReport(selected?.name || '', period.label, rows, products, movementReportExportData(data, customer.value, rows), new Date(period.end).toISOString());
     preview.innerHTML = `<h3>${report.title}</h3><p class="wb-flow-report-range">统计期间：${textForHtml(report.label)}</p>${report.summary}${report.stockTable}${report.table}`;
   };
