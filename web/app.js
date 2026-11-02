@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261102.5';
-import { installLocalShell } from './local-shell.js?v=20261102.5';
+import { createLocalApi } from './local-store.js?v=20261102.6';
+import { installLocalShell } from './local-shell.js?v=20261102.6';
 
 const api = createLocalApi();
 installLocalShell();
@@ -17,7 +17,7 @@ installLocalShell();
     const customerProducts=computed(()=>products.value.filter(product=>product.customerId===form.value.customerId));
     const fmt=n=>new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY',maximumFractionDigits:0}).format(n||0);
     const notify=t=>{toast.value=t; setTimeout(()=>toast.value='',2600)};
-    async function load(){ [overview.value,products.value,movements.value,partners.value]=await Promise.all([api('/overview'),api('/products'),api('/movements'),api('/partners')]); }
+    async function load(){ [overview.value,products.value,movements.value,partners.value]=await Promise.all([api('/overview'),api('/products'),api('/movements'),api('/partners')]); window.dispatchEvent(new Event('wareboss:data-loaded')); }
     function open(kind){ dialog.value=kind; form.value=kind==='product'?blankProduct():kind==='customer'?blankCustomer():blankMove(kind); }
     function syncMoveCustomer(){ form.value.productId=''; }
     function requestClose(){ if(!busy.value) discarding.value=true; }

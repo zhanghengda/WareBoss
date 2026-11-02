@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.5';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.5';
+import { createLocalApi } from './local-store.js?v=20261102.6';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.6';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -520,13 +520,11 @@ function installHomeFlowStats() {
     const key = `${inbound}/${outbound}/${stock}`;
     const periodStart = dashboardCustomerId ? periodStartForCustomer(data, dashboardCustomerId) : '';
     card.querySelector('h3').textContent = dashboardCustomerId ? `当前客户 · ${periodStart ? `${String(periodStart).slice(0, 10)} 月结后，期初承接上期结余` : '尚未月结'}库存汇总` : '全部客户 · 分客户当前账期库存汇总';
-    if (key !== latestFlowKey) {
-      latestFlowKey = key;
-      const cells = card.querySelectorAll('tbody td');
-      cells[0].textContent = inbound;
-      cells[1].textContent = outbound;
-      cells[2].textContent = stock;
-    }
+    latestFlowKey = key;
+    const cells = card.querySelectorAll('tbody td');
+    cells[0].textContent = inbound;
+    cells[1].textContent = outbound;
+    cells[2].textContent = stock;
   }).finally(() => { loadingFlowStats = false; });
 }
 
@@ -888,6 +886,20 @@ function enablePageTopReset() {
   });
 }
 
+function enableDashboardDataRefresh() {
+  if (document.documentElement.dataset.wbDashboardRefresh) return;
+  document.documentElement.dataset.wbDashboardRefresh = 'true';
+  window.addEventListener('wareboss:data-loaded', () => {
+    setTimeout(() => {
+      const dashboard = document.querySelector('.dashboard');
+      if (!dashboard) return;
+      latestFlowKey = '';
+      refreshDashboardCustomerStats(dashboard);
+      installHomeFlowStats();
+    }, 0);
+  });
+}
+
 function installPageActions() {
   const importButton = document.querySelector('.backup-page .backup-card:not(#wb-excel-card) .import-button');
   const backupInput = document.querySelector('.backup-page input[accept="application/json,.json"]');
@@ -920,6 +932,7 @@ export function installLocalShell() {
   injectStyle();
   enableAutomaticUpdates();
   enablePageTopReset();
+  enableDashboardDataRefresh();
   const refresh = () => { installAccountChip(); installPageActions(); };
   new MutationObserver(refresh).observe(document.body, { childList:true, subtree:true });
   if (ACCOUNTS[localStorage.getItem(SESSION_KEY)]) setTimeout(refresh, 0); else showLogin();
