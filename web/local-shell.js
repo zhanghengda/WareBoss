@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.9';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.9';
+import { createLocalApi } from './local-store.js?v=20261102.10';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.10';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -341,7 +341,7 @@ async function showExcelImportDialog(candidate, fixedCustomer = null) {
 function chooseInitializationFile(fixedCustomer = null) {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  input.accept = '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   input.addEventListener('change', async () => {
     const file = input.files?.[0];
     input.remove();
@@ -437,7 +437,7 @@ function installExcelActions() {
   const card = document.createElement('article');
   card.id = 'wb-excel-card';
   card.className = 'panel backup-card wb-excel-card';
-  card.innerHTML = `<h3>Excel 月报模板</h3><p>使用“系列、型号、规格、期初、入库、出库、结存、备注”模板导入或导出。</p><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/><button class="primary" type="button">导出 Excel 月报</button><button class="secondary import-button" type="button">导入 Excel 月报</button>`;
+  card.innerHTML = `<h3>Excel 月报模板</h3><p>支持 .xls、.xlsx；使用“系列、型号、规格、期初、入库、出库、结存、备注”模板导入或导出。</p><input type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/><button class="primary" type="button">导出 Excel 月报</button><button class="secondary import-button" type="button">导入 Excel 月报</button>`;
   const [fileInput, exportButton, importButton] = card.querySelectorAll('input,button');
   exportButton.addEventListener('click', () => showCustomerExportDialog().catch(error => window.alert(error.message || '无法打开客户列表。')));
   importButton.addEventListener('click', showExcelImportCustomerDialog);
