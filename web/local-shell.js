@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.4';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.4';
+import { createLocalApi } from './local-store.js?v=20261102.5';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.5';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -465,19 +465,22 @@ function installDashboardCustomerScope() {
 }
 const reportCustomerId = report => report.customerId || report.data?.customers?.[0]?.id || '';
 const reportTime = value => Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
-const reportTimeHasSeconds = value => /^\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(value || ''));
-const reportPeriodBoundary = value => { const timestamp = reportTime(value); return Number.isFinite(timestamp) ? Math.floor(timestamp / 60000) * 60000 : NaN; };
+function latestReportForCustomer(data, customerId) {
+  return data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => reportTime(right.periodEnd || right.createdAt) - reportTime(left.periodEnd || left.createdAt))[0] || null;
+}
 function periodStartForCustomer(data, customerId) {
-  return data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0]?.periodEnd || data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))[0]?.createdAt || '';
+  const report = latestReportForCustomer(data, customerId);
+  return report?.periodEnd || report?.createdAt || '';
 }
 function currentPeriodMovements(data, customerId = '') {
   return data.movements.filter(item => {
     if (customerId && item.customerId !== customerId) return false;
-    const periodStart = periodStartForCustomer(data, item.customerId);
-    const timestamp = reportTime(item.createdAt), exactStart = reportTime(periodStart), boundary = reportPeriodBoundary(periodStart);
-    if (!periodStart || !Number.isFinite(exactStart)) return true;
-    if (!Number.isFinite(timestamp)) return false;
-    return reportTimeHasSeconds(item.createdAt) && reportTimeHasSeconds(periodStart) ? timestamp >= exactStart : timestamp >= boundary;
+    const report = latestReportForCustomer(data, item.customerId);
+    if (!report) return true;
+    const closedMovementIds = new Set(report.closedMovementIds || []);
+    if (closedMovementIds.size) return !closedMovementIds.has(item.id);
+    const periodStart = report.periodEnd || report.createdAt;
+    return reportTime(item.createdAt) > reportTime(periodStart);
   });
 }
 function refreshDashboardCustomerStats(dashboard) {

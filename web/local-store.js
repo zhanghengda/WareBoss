@@ -6,12 +6,9 @@ const emptyState = () => ({ products: [], suppliers: [], customers: [], movement
 const clone = value => JSON.parse(JSON.stringify(value));
 const now = () => { const date = new Date(); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' '); };
 const timeOf = value => Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
-const hasSecondPrecision = value => /^\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(value || ''));
-const periodBoundary = value => { const timestamp = timeOf(value); return Number.isFinite(timestamp) ? Math.floor(timestamp / 60000) * 60000 : NaN; };
-const isOnOrAfterPeriodStart = (value, periodStart) => {
+const isAfterPeriodStart = (value, periodStart) => {
   const timestamp = timeOf(value), exactStart = timeOf(periodStart);
-  if (!Number.isFinite(timestamp) || !Number.isFinite(exactStart)) return false;
-  return hasSecondPrecision(value) && hasSecondPrecision(periodStart) ? timestamp >= exactStart : timestamp >= periodBoundary(periodStart);
+  return Number.isFinite(timestamp) && Number.isFinite(exactStart) && timestamp > exactStart;
 };
 const normalizeState = value => ({ ...emptyState(), ...(value || {}), reports:Array.isArray(value?.reports) ? value.reports : [] });
 
@@ -169,12 +166,14 @@ export function createLocalApi() {
     const createdAt = now();
     const reportData = clone(snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
     const customer = reportData.customers?.length === 1 ? reportData.customers[0] : null;
-    const previous = customer ? data.reports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0] : null;
+    const previous = customer ? data.reports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => timeOf(right.periodEnd || right.createdAt) - timeOf(left.periodEnd || left.createdAt))[0] : null;
     const periodStart = previous?.periodEnd || previous?.createdAt || '';
-    const periodStartTime = periodBoundary(periodStart);
-    if (customer && Number.isFinite(periodStartTime)) reportData.movements = reportData.movements.filter(item => isOnOrAfterPeriodStart(item.createdAt, periodStart));
+    const closedMovementIds = customer ? reportData.movements.filter(item => item.customerId === customer.id).map(item => item.id).filter(Boolean) : [];
+    const previousClosedIds = new Set(previous?.closedMovementIds || []);
+    if (customer && previousClosedIds.size) reportData.movements = reportData.movements.filter(item => !previousClosedIds.has(item.id));
+    else if (customer && periodStart) reportData.movements = reportData.movements.filter(item => isAfterPeriodStart(item.createdAt, periodStart));
     const nextPeriodOpening = reportData.products.map(product => ({ productId:product.id, productName:product.name, quantity:Number(product.stock || 0), unit:product.unit || '' }));
-    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), nextPeriodOpening, data:clone(reportData) };
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), closedMovementIds, nextPeriodOpening, data:clone(reportData) };
     data.reports.unshift(snapshot);
     await save(data);
     return clone(snapshot);
