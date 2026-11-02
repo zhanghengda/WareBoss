@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.8';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.8';
+import { createLocalApi } from './local-store.js?v=20261102.9';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.9';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -663,8 +663,8 @@ function installHomeCustomerList() {
     if (!document.contains(flow)) return;
     const card = document.createElement('section');
     card.id = 'wb-home-customers'; card.className = 'panel wb-home-customers';
-    const data = backup.data;
-    card.innerHTML = `<h3>客户当期统计</h3>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = currentPeriodMovements(data, customer.id); const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-home-customer"><div><b>${textForHtml(customer.name)}</b><span>当期：商品 ${products.length} · 库存 ${stock} · 入库 ${inbound} · 出库 ${outbound}</span></div><div><button data-stat="${textForHtml(customer.id)}">看统计</button><button class="flow" data-flow="${textForHtml(customer.id)}">看流水</button></div></div>`; }).join('') || '<p class="empty">请先建立客户并关联库存。</p>'}`;
+    const data = backup.data, date = new Date(), currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    card.innerHTML = `<h3>客户当期统计</h3>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = currentPeriodMovements(data, customer.id); const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-home-customer"><div><b><strong class="wb-customer-name">${textForHtml(customer.name)}</strong><em class="wb-current-month">${currentMonth} 当期</em></b><span>当期：商品 ${products.length} · 库存 ${stock} · 入库 ${inbound} · 出库 ${outbound}</span></div><div><button data-stat="${textForHtml(customer.id)}">看统计</button><button class="flow" data-flow="${textForHtml(customer.id)}">看流水</button></div></div>`; }).join('') || '<p class="empty">请先建立客户并关联库存。</p>'}`;
     card.querySelectorAll('button[data-stat]').forEach(button => button.addEventListener('click', () => openCustomerDashboard(button.dataset.stat)));
     card.querySelectorAll('button[data-flow]').forEach(button => button.addEventListener('click', () => openCustomerMovements(button.dataset.flow)));
     flow.insertAdjacentElement('afterend', card);
