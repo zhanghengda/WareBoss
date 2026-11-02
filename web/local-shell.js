@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.3';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.3';
+import { createLocalApi } from './local-store.js?v=20261102.4';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.4';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -464,6 +464,9 @@ function installDashboardCustomerScope() {
   }).finally(() => { loadingDashboardCustomerScope = false; });
 }
 const reportCustomerId = report => report.customerId || report.data?.customers?.[0]?.id || '';
+const reportTime = value => Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
+const reportTimeHasSeconds = value => /^\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(value || ''));
+const reportPeriodBoundary = value => { const timestamp = reportTime(value); return Number.isFinite(timestamp) ? Math.floor(timestamp / 60000) * 60000 : NaN; };
 function periodStartForCustomer(data, customerId) {
   return data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0]?.periodEnd || data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))[0]?.createdAt || '';
 }
@@ -471,7 +474,10 @@ function currentPeriodMovements(data, customerId = '') {
   return data.movements.filter(item => {
     if (customerId && item.customerId !== customerId) return false;
     const periodStart = periodStartForCustomer(data, item.customerId);
-    return !periodStart || Date.parse(String(item.createdAt || '').replace(' ', 'T')) > Date.parse(String(periodStart).replace(' ', 'T'));
+    const timestamp = reportTime(item.createdAt), exactStart = reportTime(periodStart), boundary = reportPeriodBoundary(periodStart);
+    if (!periodStart || !Number.isFinite(exactStart)) return true;
+    if (!Number.isFinite(timestamp)) return false;
+    return reportTimeHasSeconds(item.createdAt) && reportTimeHasSeconds(periodStart) ? timestamp >= exactStart : timestamp >= boundary;
   });
 }
 function refreshDashboardCustomerStats(dashboard) {
@@ -481,6 +487,7 @@ function refreshDashboardCustomerStats(dashboard) {
     if (stats.length >= 4) {
       stats[0].textContent = products.length; stats[1].textContent = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); stats[2].textContent = `¥${movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; stats[3].textContent = `¥${movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`;
       const cards = dashboard.querySelectorAll('.stats article');
+      cards[1]?.querySelector('span') && (cards[1].querySelector('span').textContent = '当期结余'); cards[1]?.querySelector('small') && (cards[1].querySelector('small').textContent = '承接上期结余');
       cards[2]?.querySelector('span') && (cards[2].querySelector('span').textContent = '当期入库金额'); cards[3]?.querySelector('span') && (cards[3].querySelector('span').textContent = '当期出库金额');
       cards[2]?.querySelector('small') && (cards[2].querySelector('small').textContent = '月结后累计'); cards[3]?.querySelector('small') && (cards[3].querySelector('small').textContent = '月结后累计');
     }
@@ -509,7 +516,7 @@ function installHomeFlowStats() {
     const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
     const key = `${inbound}/${outbound}/${stock}`;
     const periodStart = dashboardCustomerId ? periodStartForCustomer(data, dashboardCustomerId) : '';
-    card.querySelector('h3').textContent = dashboardCustomerId ? `当前客户 · ${periodStart ? `${String(periodStart).slice(0, 10)} 月结后` : '尚未月结'}库存汇总` : '全部客户 · 分客户当前账期库存汇总';
+    card.querySelector('h3').textContent = dashboardCustomerId ? `当前客户 · ${periodStart ? `${String(periodStart).slice(0, 10)} 月结后，期初承接上期结余` : '尚未月结'}库存汇总` : '全部客户 · 分客户当前账期库存汇总';
     if (key !== latestFlowKey) {
       latestFlowKey = key;
       const cells = card.querySelectorAll('tbody td');

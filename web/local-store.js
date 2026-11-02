@@ -4,7 +4,15 @@ const STATE_ID = 'main';
 
 const emptyState = () => ({ products: [], suppliers: [], customers: [], movements: [], reports: [] });
 const clone = value => JSON.parse(JSON.stringify(value));
-const now = () => new Intl.DateTimeFormat('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(new Date()).replaceAll('/','-').replace(',','');
+const now = () => { const date = new Date(); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' '); };
+const timeOf = value => Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
+const hasSecondPrecision = value => /^\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(String(value || ''));
+const periodBoundary = value => { const timestamp = timeOf(value); return Number.isFinite(timestamp) ? Math.floor(timestamp / 60000) * 60000 : NaN; };
+const isOnOrAfterPeriodStart = (value, periodStart) => {
+  const timestamp = timeOf(value), exactStart = timeOf(periodStart);
+  if (!Number.isFinite(timestamp) || !Number.isFinite(exactStart)) return false;
+  return hasSecondPrecision(value) && hasSecondPrecision(periodStart) ? timestamp >= exactStart : timestamp >= periodBoundary(periodStart);
+};
 const normalizeState = value => ({ ...emptyState(), ...(value || {}), reports:Array.isArray(value?.reports) ? value.reports : [] });
 
 function openDatabase() {
@@ -37,7 +45,7 @@ export function createLocalApi() {
     await new Promise((resolve, reject) => { transaction.oncomplete = resolve; transaction.onerror = () => reject(transaction.error); transaction.onabort = () => reject(transaction.error); });
   }
   const overview = data => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = now().slice(0, 10);
     const todayRows = data.movements.filter(item => item.createdAt.startsWith(today));
     return {
       productKinds: data.products.length,
@@ -158,14 +166,15 @@ export function createLocalApi() {
   api.listReportSnapshots = async () => clone((await state()).reports);
   api.createReportSnapshot = async (note, snapshotData = null) => {
     const data = await state();
-    const createdAt = new Date().toISOString();
+    const createdAt = now();
     const reportData = clone(snapshotData || { products:data.products, suppliers:data.suppliers, customers:data.customers, movements:data.movements });
     const customer = reportData.customers?.length === 1 ? reportData.customers[0] : null;
     const previous = customer ? data.reports.filter(report => report.customerId === customer.id || report.data?.customers?.some(item => item.id === customer.id)).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0] : null;
     const periodStart = previous?.periodEnd || previous?.createdAt || '';
-    const periodStartTime = Date.parse(String(periodStart).replace(' ', 'T'));
-    if (customer && periodStart) reportData.movements = reportData.movements.filter(item => Date.parse(String(item.createdAt || '').replace(' ', 'T')) > periodStartTime);
-    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), data:clone(reportData) };
+    const periodStartTime = periodBoundary(periodStart);
+    if (customer && Number.isFinite(periodStartTime)) reportData.movements = reportData.movements.filter(item => isOnOrAfterPeriodStart(item.createdAt, periodStart));
+    const nextPeriodOpening = reportData.products.map(product => ({ productId:product.id, productName:product.name, quantity:Number(product.stock || 0), unit:product.unit || '' }));
+    const snapshot = { id:`REPORT-${Date.now()}`, createdAt, periodStart, periodEnd:createdAt, customerId:customer?.id || '', customerName:customer?.name || '', note:String(note || '').slice(0, 120), nextPeriodOpening, data:clone(reportData) };
     data.reports.unshift(snapshot);
     await save(data);
     return clone(snapshot);
