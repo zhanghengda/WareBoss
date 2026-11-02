@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.11';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.11';
+import { createLocalApi } from './local-store.js?v=20261102.12';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.12';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -757,27 +757,47 @@ function movementReportWindow(scope) {
 function movementReportTimestamp(value) {
   return Date.parse(String(value || '').replace(' ', 'T').replaceAll('/', '-'));
 }
-function buildMovementReport(customerName, label, rows) {
+function movementReportExportData(data, customerId, rows) {
+  const products = data.products.filter(item => !customerId || item.customerId === customerId).map(product => {
+    const movements = rows.filter(item => item.productId === product.id);
+    const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    return { ...product, openingStock:Number(product.stock || 0) - inbound + outbound };
+  });
+  return { ...data, customers:(data.customers || []).filter(item => !customerId || item.id === customerId), products, movements:rows };
+}
+function buildMovementReport(customerName, label, rows, products, exportData, reportDate) {
   const inbound = rows.filter(item => item.type === 'in'), outbound = rows.filter(item => item.type === 'out');
   const inQty = inbound.reduce((sum, item) => sum + Number(item.quantity || 0), 0), outQty = outbound.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const inAmount = inbound.reduce((sum, item) => sum + Number(item.amount || 0), 0), outAmount = outbound.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const summary = `<section class="wb-flow-report-summary"><div><span>流水笔数</span><b>${rows.length}</b></div><div><span>入库数量</span><b class="in">${inQty}</b><small>¥${inAmount.toFixed(2)}</small></div><div><span>出库数量</span><b class="out">${outQty}</b><small>¥${outAmount.toFixed(2)}</small></div></section>`;
+  const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
+  const summary = `<section class="wb-flow-report-summary"><div><span>流水笔数</span><b>${rows.length}</b></div><div><span>入库数量</span><b class="in">${inQty}</b><small>¥${inAmount.toFixed(2)}</small></div><div><span>出库数量</span><b class="out">${outQty}</b><small>¥${outAmount.toFixed(2)}</small></div><div><span>当前库存</span><b class="stock">${stock}</b><small>${products.length} 个商品</small></div></section>`;
+  const stockTable = `<section class="wb-flow-report-table wb-flow-stock-table"><h4>当前库存明细</h4><table><thead><tr><th>系列</th><th>型号</th><th>规格</th><th>当前库存</th><th>单位</th><th>备注</th></tr></thead><tbody>${[...products].sort((left, right) => `${left.category || ''}\u0000${left.sku || left.name || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || right.name || ''}`, 'zh-CN')).map(item => `<tr><td>${textForHtml(item.category || '—')}</td><td>${textForHtml(item.sku || item.name || '—')}</td><td>${textForHtml(item.spec || '—')}</td><td class="stock">${Number(item.stock || 0)}</td><td>${textForHtml(item.unit || '件')}</td><td>${textForHtml(item.remark || '—')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">该客户暂无库存商品。</td></tr>'}</tbody></table></section>`;
   const table = `<section class="wb-flow-report-table"><table><thead><tr><th>时间</th><th>类型</th><th>商品</th><th>数量</th><th>金额</th><th>客户 / 往来</th><th>备注</th></tr></thead><tbody>${rows.map(item => `<tr><td>${textForHtml(item.createdAt || '')}</td><td class="${item.type}">${item.type === 'in' ? '入库' : '出库'}</td><td>${textForHtml(item.productName || '')}</td><td>${item.type === 'in' ? '+' : '-'}${Number(item.quantity || 0)}</td><td>¥${Number(item.amount || 0).toFixed(2)}</td><td>${textForHtml(item.customerName || customerName || '')}<small>${textForHtml(item.partner || '')}</small></td><td>${textForHtml(item.note || '—')}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">该时间范围内暂无出入库流水。</td></tr>'}</tbody></table></section>`;
-  return { summary, table, title:`出入库流水报表 · ${textForHtml(customerName || '全部客户')}`, label };
+  return { summary, stockTable, table, title:`出入库流水报表 · ${textForHtml(customerName || '全部客户')}`, customerName:customerName || '全部客户', label, exportData, reportDate };
+}
+function downloadMovementReport(report) {
+  const bytes = createMonthlyReport(report.exportData, { reportDate:report.reportDate, snapshotNote:`流水报表：${report.customerName}；统计期间：${report.label}；当前库存：${report.exportData.products.reduce((sum, item) => sum + Number(item.stock || 0), 0)}` });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  link.download = `wareboss-${report.customerName.replace(/[\\/:*?"<>|]/g, '-')}-${String(report.reportDate).slice(0, 10)}-流水报表.xlsx`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 function printMovementReport(report) {
   const popup = window.open('', '_blank');
   if (!popup) { window.alert('浏览器阻止了打印窗口，请允许弹出窗口后重试。'); return; }
-  popup.document.write(`<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${report.title}</title><style>body{font-family:"Microsoft YaHei",Arial,sans-serif;color:#1e3940;padding:28px}h1{margin:0;font-size:22px}p{color:#61767c;font-size:13px}.wb-flow-report-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.wb-flow-report-summary div{border:1px solid #d9e7e6;border-radius:8px;padding:12px}.wb-flow-report-summary span,.wb-flow-report-summary small{display:block;color:#71858a;font-size:12px}.wb-flow-report-summary b{display:block;margin:5px 0;font-size:21px}.in{color:#117d70}.out{color:#7a60c5}table{border-collapse:collapse;width:100%;font-size:12px}th{background:#176d67;color:#fff;text-align:left;padding:9px}td{border-bottom:1px solid #e2eceb;padding:8px;vertical-align:top}td small{display:block;color:#7b8d92;margin-top:3px}.empty{text-align:center;color:#76888d;padding:26px}@media print{body{padding:0}}</style></head><body><h1>${report.title}</h1><p>统计期间：${textForHtml(report.label)}　打印时间：${new Date().toLocaleString('zh-CN', { hour12:false })}</p>${report.summary}${report.table}</body></html>`);
+  popup.document.write(`<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${report.title}</title><style>body{font-family:"Microsoft YaHei",Arial,sans-serif;color:#1e3940;padding:28px}h1{margin:0;font-size:22px}p{color:#61767c;font-size:13px}.wb-flow-report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.wb-flow-report-summary div{border:1px solid #d9e7e6;border-radius:8px;padding:12px}.wb-flow-report-summary span,.wb-flow-report-summary small{display:block;color:#71858a;font-size:12px}.wb-flow-report-summary b{display:block;margin:5px 0;font-size:21px}.in{color:#117d70}.out{color:#7a60c5}.stock{color:#22738a;font-weight:700}h4{margin:18px 0 0;padding:10px;background:#eef7f5;font-size:14px}table{border-collapse:collapse;width:100%;font-size:12px}th{background:#176d67;color:#fff;text-align:left;padding:9px}td{border-bottom:1px solid #e2eceb;padding:8px;vertical-align:top}td small{display:block;color:#7b8d92;margin-top:3px}.empty{text-align:center;color:#76888d;padding:26px}@media print{body{padding:0}}</style></head><body><h1>${report.title}</h1><p>统计期间：${textForHtml(report.label)}　打印时间：${new Date().toLocaleString('zh-CN', { hour12:false })}</p>${report.summary}${report.stockTable}${report.table}</body></html>`);
   popup.document.close();
   popup.focus();
   setTimeout(() => popup.print(), 250);
 }
 async function showMovementReportDialog() {
-  const [partners, movements] = await Promise.all([createLocalApi()('/partners'), createLocalApi()('/movements')]);
+  const [partners, backup] = await Promise.all([createLocalApi()('/partners'), createLocalApi().exportState()]);
+  const data = backup.data, movements = data.movements || [];
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<section class="wb-clear-dialog wb-flow-report-dialog" role="dialog" aria-modal="true"><h2>出入库流水报表</h2><p>选择统计期间和客户，先在线预览汇总及明细，再打印。</p><div class="wb-flow-report-controls"><label>统计期间<select class="scope"><option value="today">当天</option><option value="7d">最近 7 天</option><option value="30d">最近 1 个月</option></select></label><label>客户范围<select class="customer"><option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label></div><div class="wb-flow-report-preview"></div><div class="wb-clear-actions"><button class="cancel" type="button">关闭</button><button class="secondary refresh" type="button">刷新预览</button><button class="primary print" type="button">打印报表</button></div></section>`;
+  overlay.innerHTML = `<section class="wb-clear-dialog wb-flow-report-dialog" role="dialog" aria-modal="true"><h2>出入库流水报表</h2><p>选择统计期间和客户，可预览流水、当前库存，并导出兼容月报格式的 Excel。</p><div class="wb-flow-report-controls"><label>统计期间<select class="scope"><option value="today">当天</option><option value="7d">最近 7 天</option><option value="30d">最近 1 个月</option></select></label><label>客户范围<select class="customer"><option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label></div><div class="wb-flow-report-preview"></div><div class="wb-clear-actions"><button class="cancel" type="button">关闭</button><button class="secondary refresh" type="button">刷新预览</button><button class="secondary export" type="button">导出 Excel</button><button class="primary print" type="button">打印报表</button></div></section>`;
   const scope = overlay.querySelector('.scope'), customer = overlay.querySelector('.customer'), preview = overlay.querySelector('.wb-flow-report-preview');
   customer.value = movementCustomerFilter;
   let report;
@@ -788,11 +808,13 @@ async function showMovementReportDialog() {
       const timestamp = movementReportTimestamp(item.createdAt);
       return (!customer.value || item.customerId === customer.value) && Number.isFinite(timestamp) && timestamp >= period.start && timestamp <= period.end;
     }).sort((left, right) => movementReportTimestamp(right.createdAt) - movementReportTimestamp(left.createdAt));
-    report = buildMovementReport(selected?.name || '', period.label, rows);
-    preview.innerHTML = `<h3>${report.title}</h3><p class="wb-flow-report-range">统计期间：${textForHtml(report.label)}</p>${report.summary}${report.table}`;
+    const products = data.products.filter(item => !customer.value || item.customerId === customer.value);
+    report = buildMovementReport(selected?.name || '', period.label, rows, products, movementReportExportData(data, customer.value, rows), new Date(period.end).toISOString());
+    preview.innerHTML = `<h3>${report.title}</h3><p class="wb-flow-report-range">统计期间：${textForHtml(report.label)}</p>${report.summary}${report.stockTable}${report.table}`;
   };
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.refresh').addEventListener('click', render);
+  overlay.querySelector('.export').addEventListener('click', () => downloadMovementReport(report));
   overlay.querySelector('.print').addEventListener('click', () => printMovementReport(report));
   scope.addEventListener('change', render); customer.addEventListener('change', render);
   render();
