@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261101.5';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261101.5';
+import { createLocalApi } from './local-store.js?v=20261102.2';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.2';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -463,11 +463,27 @@ function installDashboardCustomerScope() {
     refreshDashboardCustomerStats(dashboard);
   }).finally(() => { loadingDashboardCustomerScope = false; });
 }
+const reportCustomerId = report => report.customerId || report.data?.customers?.[0]?.id || '';
+function periodStartForCustomer(data, customerId) {
+  return data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0]?.periodEnd || data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))[0]?.createdAt || '';
+}
+function currentPeriodMovements(data, customerId = '') {
+  return data.movements.filter(item => {
+    if (customerId && item.customerId !== customerId) return false;
+    const periodStart = periodStartForCustomer(data, item.customerId);
+    return !periodStart || Date.parse(String(item.createdAt || '').replace(' ', 'T')) > Date.parse(String(periodStart).replace(' ', 'T'));
+  });
+}
 function refreshDashboardCustomerStats(dashboard) {
   createLocalApi().exportState().then(backup => {
-    const data = backup.data, products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId), movements = data.movements.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
+    const data = backup.data, products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId), movements = currentPeriodMovements(data, dashboardCustomerId);
     const stats = dashboard.querySelectorAll('.stats article strong');
-    if (stats.length >= 4) { stats[0].textContent = products.length; stats[1].textContent = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); stats[2].textContent = `¥${movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; stats[3].textContent = `¥${movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; }
+    if (stats.length >= 4) {
+      stats[0].textContent = products.length; stats[1].textContent = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); stats[2].textContent = `¥${movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`; stats[3].textContent = `¥${movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.amount || 0), 0)}`;
+      const cards = dashboard.querySelectorAll('.stats article');
+      cards[2]?.querySelector('span') && (cards[2].querySelector('span').textContent = '当期入库金额'); cards[3]?.querySelector('span') && (cards[3].querySelector('span').textContent = '当期出库金额');
+      cards[2]?.querySelector('small') && (cards[2].querySelector('small').textContent = '月结后累计'); cards[3]?.querySelector('small') && (cards[3].querySelector('small').textContent = '月结后累计');
+    }
   });
 }
 function installHomeFlowStats() {
@@ -486,19 +502,13 @@ function installHomeFlowStats() {
   loadingFlowStats = true;
   createLocalApi().exportState().then(backup => {
     const data = backup.data;
-    const reportCustomerId = report => report.customerId || report.data?.customers?.[0]?.id || '';
-    const periodStartFor = customerId => data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.periodEnd || right.createdAt).localeCompare(String(left.periodEnd || left.createdAt)))[0]?.periodEnd || data.reports.filter(report => reportCustomerId(report) === customerId).sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))[0]?.createdAt || '';
-    const movements = data.movements.filter(item => {
-      if (dashboardCustomerId && item.customerId !== dashboardCustomerId) return false;
-      const periodStart = periodStartFor(item.customerId);
-      return !periodStart || Date.parse(String(item.createdAt || '').replace(' ', 'T')) > Date.parse(String(periodStart).replace(' ', 'T'));
-    });
+    const movements = currentPeriodMovements(data, dashboardCustomerId);
     const products = data.products.filter(item => !dashboardCustomerId || item.customerId === dashboardCustomerId);
     const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0);
     const key = `${inbound}/${outbound}/${stock}`;
-    const periodStart = dashboardCustomerId ? periodStartFor(dashboardCustomerId) : '';
+    const periodStart = dashboardCustomerId ? periodStartForCustomer(data, dashboardCustomerId) : '';
     card.querySelector('h3').textContent = dashboardCustomerId ? `当前客户 · ${periodStart ? `${String(periodStart).slice(0, 10)} 月结后` : '尚未月结'}库存汇总` : '全部客户 · 分客户当前账期库存汇总';
     if (key !== latestFlowKey) {
       latestFlowKey = key;
@@ -634,7 +644,7 @@ function installHomeCustomerList() {
     const card = document.createElement('section');
     card.id = 'wb-home-customers'; card.className = 'panel wb-home-customers';
     const data = backup.data;
-    card.innerHTML = `<h3>客户统计</h3>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = data.movements.filter(item => item.customerId === customer.id); const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-home-customer"><div><b>${textForHtml(customer.name)}</b><span>商品 ${products.length} · 库存 ${stock} · 入库 ${inbound} · 出库 ${outbound}</span></div><div><button data-stat="${textForHtml(customer.id)}">看统计</button><button class="flow" data-flow="${textForHtml(customer.id)}">看流水</button></div></div>`; }).join('') || '<p class="empty">请先建立客户并关联库存。</p>'}`;
+    card.innerHTML = `<h3>客户当期统计</h3>${partners.customers.map(customer => { const products = data.products.filter(item => item.customerId === customer.id); const movements = currentPeriodMovements(data, customer.id); const stock = products.reduce((sum, item) => sum + Number(item.stock || 0), 0); const inbound = movements.filter(item => item.type === 'in').reduce((sum, item) => sum + Number(item.quantity || 0), 0); const outbound = movements.filter(item => item.type === 'out').reduce((sum, item) => sum + Number(item.quantity || 0), 0); return `<div class="wb-home-customer"><div><b>${textForHtml(customer.name)}</b><span>当期：商品 ${products.length} · 库存 ${stock} · 入库 ${inbound} · 出库 ${outbound}</span></div><div><button data-stat="${textForHtml(customer.id)}">看统计</button><button class="flow" data-flow="${textForHtml(customer.id)}">看流水</button></div></div>`; }).join('') || '<p class="empty">请先建立客户并关联库存。</p>'}`;
     card.querySelectorAll('button[data-stat]').forEach(button => button.addEventListener('click', () => openCustomerDashboard(button.dataset.stat)));
     card.querySelectorAll('button[data-flow]').forEach(button => button.addEventListener('click', () => openCustomerMovements(button.dataset.flow)));
     flow.insertAdjacentElement('afterend', card);
@@ -728,10 +738,13 @@ function installMovementCustomerFilter() {
     select.setAttribute('aria-label', '按客户筛选');
     select.innerHTML = `<option value="">全部客户</option>${partners.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}`;
     select.value = movementCustomerFilter;
-    const month = document.createElement('input');
-    month.type = 'month'; month.id = 'wb-movement-month-filter'; month.className = 'wb-customer-filter'; month.title = '按月份查看'; month.setAttribute('aria-label', '按月份筛选');
-    const day = document.createElement('input');
-    day.type = 'date'; day.id = 'wb-movement-day-filter'; day.className = 'wb-customer-filter'; day.title = '按日期查看'; day.setAttribute('aria-label', '按日期筛选');
+    const range = document.createElement('select');
+    range.id = 'wb-movement-range-filter'; range.className = 'wb-customer-filter'; range.setAttribute('aria-label', '选择时间范围');
+    range.innerHTML = '<option value="7d">最近7天</option><option value="30d">最近一个月</option><option value="custom">自定义日期</option>';
+    const start = document.createElement('input');
+    start.type = 'date'; start.id = 'wb-movement-start-filter'; start.className = 'wb-customer-filter'; start.title = '开始日期'; start.setAttribute('aria-label', '开始日期');
+    const end = document.createElement('input');
+    end.type = 'date'; end.id = 'wb-movement-end-filter'; end.className = 'wb-customer-filter'; end.title = '结束日期'; end.setAttribute('aria-label', '结束日期');
     const reset = document.createElement('button');
     reset.type = 'button'; reset.className = 'secondary wb-movement-reset'; reset.textContent = '重置';
     const apply = () => {
@@ -739,21 +752,25 @@ function installMovementCustomerFilter() {
       table.querySelectorAll('tbody tr').forEach(row => {
         const id = row.cells[0]?.textContent.trim();
         const movement = movements.find(item => item.id === id);
-        const dateText = String(movement?.createdAt || '').replaceAll('/', '-');
+        const movementTime = Date.parse(String(movement?.createdAt || '').replace(' ', 'T').replaceAll('/', '-'));
+        const now = new Date(); let startTime = -Infinity, endTime = Infinity;
+        if (range.value === '7d') { const from = new Date(now); from.setDate(now.getDate() - 6); from.setHours(0, 0, 0, 0); startTime = from.getTime(); endTime = now.getTime(); }
+        if (range.value === '30d') { const from = new Date(now); from.setDate(now.getDate() - 29); from.setHours(0, 0, 0, 0); startTime = from.getTime(); endTime = now.getTime(); }
+        if (range.value === 'custom') { if (start.value) startTime = new Date(`${start.value}T00:00:00`).getTime(); if (end.value) endTime = new Date(`${end.value}T23:59:59.999`).getTime(); }
         const matchesCustomer = !movementCustomerFilter || movement?.customerId === movementCustomerFilter;
-        const matchesMonth = !month.value || dateText.startsWith(month.value);
-        const matchesDay = !day.value || dateText.startsWith(day.value);
-        row.style.display = matchesCustomer && matchesMonth && matchesDay ? '' : 'none';
+        const matchesTime = Number.isFinite(movementTime) && movementTime >= startTime && movementTime <= endTime;
+        row.style.display = matchesCustomer && matchesTime ? '' : 'none';
         const productCell = row.cells[2];
         if (movement && productCell && !productCell.querySelector('.wb-movement-customer')) { const mark = document.createElement('small'); mark.className = 'wb-movement-customer'; mark.textContent = `客户：${movement.customerName || '待指定'}`; productCell.append(mark); }
       });
     };
-    reset.addEventListener('click', () => { select.value = ''; month.value = ''; day.value = ''; apply(); });
+    const toggleCustomDates = () => { const custom = range.value === 'custom'; start.hidden = !custom; end.hidden = !custom; };
+    reset.addEventListener('click', () => { select.value = ''; range.value = '7d'; start.value = ''; end.value = ''; toggleCustomDates(); apply(); });
     const controls = document.createElement('div');
     controls.id = 'wb-movement-filters'; controls.className = 'wb-movement-filters';
     controls.innerHTML = '<span>筛选</span>';
-    controls.append(select, month, day, reset);
-    select.addEventListener('change', apply); month.addEventListener('change', apply); day.addEventListener('change', apply); head.append(controls); apply();
+    controls.append(select, range, start, end, reset);
+    select.addEventListener('change', apply); range.addEventListener('change', () => { toggleCustomDates(); apply(); }); start.addEventListener('change', apply); end.addEventListener('change', apply); head.append(controls); toggleCustomDates(); apply();
   });
 }
 
