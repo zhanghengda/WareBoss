@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261102.6';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.6';
+import { createLocalApi } from './local-store.js?v=20261102.7';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261102.7';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -753,6 +753,8 @@ function installMovementCustomerFilter() {
     start.type = 'date'; start.id = 'wb-movement-start-filter'; start.className = 'wb-customer-filter'; start.title = '开始日期'; start.setAttribute('aria-label', '开始日期');
     const end = document.createElement('input');
     end.type = 'date'; end.id = 'wb-movement-end-filter'; end.className = 'wb-customer-filter'; end.title = '结束日期'; end.setAttribute('aria-label', '结束日期');
+    const query = document.createElement('button');
+    query.type = 'button'; query.className = 'primary wb-movement-query'; query.textContent = '查询';
     const reset = document.createElement('button');
     reset.type = 'button'; reset.className = 'secondary wb-movement-reset'; reset.textContent = '重置';
     const apply = () => {
@@ -777,7 +779,8 @@ function installMovementCustomerFilter() {
     const controls = document.createElement('div');
     controls.id = 'wb-movement-filters'; controls.className = 'wb-movement-filters';
     controls.innerHTML = '<span>筛选</span>';
-    controls.append(select, range, start, end, reset);
+    controls.append(select, range, start, end, query, reset);
+    query.addEventListener('click', apply);
     select.addEventListener('change', apply); range.addEventListener('change', () => { toggleCustomDates(); apply(); }); start.addEventListener('change', apply); end.addEventListener('change', apply); head.append(controls); toggleCustomDates(); apply();
   });
 }
