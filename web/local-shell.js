@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.26';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.26';
+import { createLocalApi } from './local-store.js?v=20261105.27';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.27';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -33,7 +33,7 @@ function injectStyle() {
   style.textContent += '.wb-alert-item{grid-template-columns:36px minmax(0,1fr) auto auto}@media(max-width:640px){.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto}.wb-alert-restock{grid-column:2 / -1;justify-self:end;margin-top:-2px;padding:6px 8px;font-size:11px}}';
   style.textContent += '.wb-product-actions{display:flex;gap:6px;margin-top:7px}.wb-product-actions button{border:0;border-radius:6px;padding:5px 8px;background:#e7f6f2;color:#10796b;font:700 11px inherit;cursor:pointer}.wb-product-actions .out{background:#f1eeff;color:#705ac1}.wb-product-quick-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-product-quick-dialog input{width:100%;box-sizing:border-box;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-product-quick-dialog .wb-product-context{margin:0;padding:10px 12px;border-radius:9px;background:#eff8f6;color:#365b61;font-size:13px;line-height:1.55}';
   style.textContent += '.wb-batch-row .product-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}.wb-batch-row .new-model{border:1px solid #9acfc6;border-radius:7px;background:#effaf7;color:#117d70;padding:0 8px;font:700 12px inherit;white-space:nowrap;cursor:pointer}.wb-new-model-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-new-model-dialog input,.wb-new-model-dialog select{width:100%;box-sizing:border-box;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-new-model-dialog .new-series{display:none}@media(max-width:640px){.wb-batch-row .product-picker{grid-column:1 / span 2}.wb-batch-row .new-model{padding:0 7px;font-size:11px}}';
-  style.textContent += '.wb-product-compact-table{width:100%!important;min-width:0!important;table-layout:fixed}.wb-product-compact-table th,.wb-product-compact-table td{overflow:hidden;text-overflow:ellipsis}@media(max-width:640px){.wb-product-compact-table{font-size:10px}.wb-product-compact-table th,.wb-product-compact-table td{padding:8px 2px!important;white-space:nowrap}.wb-product-compact-table th:nth-child(1){width:13%}.wb-product-compact-table th:nth-child(2){width:27%}.wb-product-compact-table th:nth-child(3){width:17%}.wb-product-compact-table th:nth-child(4){width:13%}.wb-product-compact-table th:nth-child(5){width:30%}.wb-product-compact-table td:nth-child(2) small{display:none}.wb-product-compact-table td b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wb-product-compact-table .wb-product-actions{justify-content:flex-end;gap:4px;margin:0;white-space:nowrap}.wb-product-compact-table .wb-product-actions button{padding:4px 5px;font-size:10px}}';
+  style.textContent += '.wb-product-compact-table{width:100%!important;min-width:0!important;table-layout:fixed}.wb-product-compact-table th,.wb-product-compact-table td{overflow:hidden;text-overflow:ellipsis}@media(max-width:640px){.wb-product-compact-table{font-size:11px}.wb-product-compact-table th,.wb-product-compact-table td{padding:9px 4px!important;white-space:nowrap}.wb-product-compact-table th:nth-child(1){width:16%}.wb-product-compact-table th:nth-child(2){width:42%}.wb-product-compact-table th:nth-child(3){width:23%}.wb-product-compact-table th:nth-child(4){width:19%}.wb-product-compact-table td:nth-child(2) small{display:none}.wb-product-compact-table td b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wb-product-compact-table .wb-product-actions{justify-content:flex-start;gap:6px;margin:7px 0 0;white-space:nowrap}.wb-product-compact-table .wb-product-actions button{padding:5px 8px;font-size:11px}}';
   document.head.append(style);
 }
 
@@ -799,13 +799,13 @@ function installProductQuickActions() {
     table.classList.add('wb-product-compact-table');
     if (table.parentElement) table.parentElement.style.overflowX = 'hidden';
     const header = table.querySelector('thead tr');
-    if (header) header.innerHTML = '<th>系列</th><th>型号</th><th>客户</th><th>库存</th><th>操作</th>';
+    if (header) header.innerHTML = '<th>系列</th><th>型号</th><th>客户</th><th>库存</th>';
     table.querySelectorAll('tbody tr[data-product-id]').forEach(row => {
       const product = products.find(item => item.id === row.dataset.productId);
       if (!product) return;
       if (!row.dataset.compactProduct) {
         row.dataset.compactProduct = 'true';
-        row.innerHTML = `<td>${textForHtml(product.category || '其他')}</td><td><b>${textForHtml(product.sku || product.name)}</b><small>${textForHtml(product.spec || '无规格')}</small></td><td>${textForHtml(product.customerName || '待指定')}</td><td><b>${Number(product.stock || 0)}</b> ${textForHtml(product.unit || '件')}</td><td></td>`;
+        row.innerHTML = `<td>${textForHtml(product.category || '其他')}</td><td><b>${textForHtml(product.sku || product.name)}</b><small>${textForHtml(product.spec || '无规格')}</small></td><td>${textForHtml(product.customerName || '待指定')}</td><td><b>${Number(product.stock || 0)}</b> ${textForHtml(product.unit || '件')}</td>`;
       }
       if (row.querySelector('.wb-product-actions')) return;
       const actions = document.createElement('div');
@@ -813,7 +813,7 @@ function installProductQuickActions() {
       actions.innerHTML = '<button class="in" type="button">入库</button><button class="out" type="button">出库</button>';
       actions.querySelector('.in').addEventListener('click', () => showProductQuickMovement(product, 'in'));
       actions.querySelector('.out').addEventListener('click', () => showProductQuickMovement(product, 'out'));
-      row.cells[4]?.append(actions);
+      row.cells[1]?.append(actions);
     });
   });
 }
