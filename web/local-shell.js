@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.19';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.19';
+import { createLocalApi } from './local-store.js?v=20261105.20';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.20';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -643,7 +643,7 @@ function showAlertRestockDialog(product) {
   const suggested = Math.max(1, Number(product.safeStock || 0) - Number(product.stock || 0));
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<form class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>预警商品快速入库</h2><p><b>${textForHtml(product.sku || product.name)}</b> · ${textForHtml(product.category || '其他')}<br/>当前库存 ${Number(product.stock || 0)} ${textForHtml(product.unit || '件')}，安全库存 ${Number(product.safeStock || 0)} ${textForHtml(product.unit || '件')}。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">本次入库数量<input class="quantity" type="number" min="1" value="${suggested}" required style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对确认</button></div></form>`;
+  overlay.innerHTML = `<form class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>预警商品快速入库</h2><p><b>${textForHtml(product.category || '其他')} · ${textForHtml(product.sku || product.name)}</b><br/>当前库存 ${Number(product.stock || 0)} ${textForHtml(product.unit || '件')}，安全库存 ${Number(product.safeStock || 0)} ${textForHtml(product.unit || '件')}。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">本次入库数量<input class="quantity" type="number" min="1" value="${suggested}" required style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对确认</button></div></form>`;
   const form = overlay.querySelector('form');
   overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   form.addEventListener('submit', event => {
@@ -671,7 +671,7 @@ function installCustomerAlerts() {
     const list = card.querySelector('.wb-alert-list');
     const render = () => {
       const rows = products.filter(product => (!select.value || product.customerId === select.value) && Number(product.stock || 0) <= Number(product.safeStock || 0));
-      list.innerHTML = rows.map(product => `<div class="wb-alert-item"><i>!</i><div><b>${textForHtml(product.sku || product.name)}</b><span>${textForHtml(product.category || '其他')} · ${textForHtml(product.customerName || '未指定客户')} · ${textForHtml(product.location || '未设置库位')}</span></div><strong>${Number(product.stock || 0)} ${textForHtml(product.unit || '')}<small>安全库存 ${Number(product.safeStock || 0)}</small></strong><button type="button" class="wb-alert-restock" data-product-id="${textForHtml(product.id)}">快速入库</button></div>`).join('') || '<p class="empty">该客户暂无库存预警。</p>';
+      list.innerHTML = rows.map(product => `<div class="wb-alert-item"><i>!</i><div><b>${textForHtml(product.category || '其他')} · ${textForHtml(product.sku || product.name)}</b><span>${textForHtml(product.customerName || '未指定客户')} · ${textForHtml(product.location || '未设置库位')}</span></div><strong>${Number(product.stock || 0)} ${textForHtml(product.unit || '')}<small>安全库存 ${Number(product.safeStock || 0)}</small></strong><button type="button" class="wb-alert-restock" data-product-id="${textForHtml(product.id)}">快速入库</button></div>`).join('') || '<p class="empty">该客户暂无库存预警。</p>';
       list.querySelectorAll('.wb-alert-restock').forEach(button => button.addEventListener('click', () => { const product = products.find(item => item.id === button.dataset.productId); if (product) showAlertRestockDialog(product); }));
     };
     select.addEventListener('change', render);
