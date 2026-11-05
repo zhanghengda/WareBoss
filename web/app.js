@@ -1,10 +1,10 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.20';
-import { installLocalShell } from './local-shell.js?v=20261105.20';
+import { createLocalApi } from './local-store.js?v=20261105.21';
+import { installLocalShell } from './local-shell.js?v=20261105.21';
 
 const api = createLocalApi();
 installLocalShell();
-((options) => createApp({ ...options, template:options.template.replaceAll('&&', '&amp;&amp;') }))({
+((options) => createApp({ ...options, template:options.template.replaceAll('&&', '&amp;&amp;').replaceAll('分类', '系列') }))({
   setup(){
     const page=ref('dashboard'), overview=ref({lowStock:[],recent:[]}), products=ref([]), movements=ref([]), partners=ref({suppliers:[],customers:[]});
     const query=ref(''), dialog=ref(null), confirming=ref(false), discarding=ref(false), importCandidate=ref(null), importCustomerId=ref(''), clearCandidate=ref(false), busy=ref(false), toast=ref(''), backupInput=ref(null);
