@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.21';
-import { installLocalShell } from './local-shell.js?v=20261105.21';
+import { createLocalApi } from './local-store.js?v=20261105.22';
+import { installLocalShell } from './local-shell.js?v=20261105.22';
 
 const api = createLocalApi();
 installLocalShell();
@@ -8,7 +8,7 @@ installLocalShell();
   setup(){
     const page=ref('dashboard'), overview=ref({lowStock:[],recent:[]}), products=ref([]), movements=ref([]), partners=ref({suppliers:[],customers:[]});
     const query=ref(''), dialog=ref(null), confirming=ref(false), discarding=ref(false), importCandidate=ref(null), importCustomerId=ref(''), clearCandidate=ref(false), busy=ref(false), toast=ref(''), backupInput=ref(null);
-    const blankProduct=()=>({name:'',sku:'',category:'包装耗材',spec:'',unit:'个',stock:0,safeStock:0,cost:0,price:0,location:'',customerId:''});
+    const blankProduct=()=>({id:'',name:'',sku:'',category:'',spec:'',unit:'个',stock:0,safeStock:0,cost:0,price:0,location:'',customerId:''});
     const blankMove=(type)=>({type,customerId:'',series:'',productId:'',quantity:1,price:'',partner:'',operator:'管理员',note:''});
     const blankCustomer=()=>({type:'customer',name:'',contact:'',phone:''});
     const form=ref(blankProduct());
@@ -21,6 +21,9 @@ installLocalShell();
     const notify=t=>{toast.value=t; setTimeout(()=>toast.value='',2600)};
     async function load(){ [overview.value,products.value,movements.value,partners.value]=await Promise.all([api('/overview'),api('/products'),api('/movements'),api('/partners')]); window.dispatchEvent(new Event('wareboss:data-loaded')); }
     function open(kind){ dialog.value=kind; form.value=kind==='product'?blankProduct():kind==='customer'?blankCustomer():blankMove(kind); }
+    window.addEventListener('wareboss:product-form', event => {
+      if (dialog.value === 'product' && event.detail) Object.assign(form.value, event.detail);
+    });
     function syncMoveCustomer(){ form.value.series=''; form.value.productId=''; }
     function syncMoveSeries(){ form.value.productId=''; if(form.value.series==='＋ 新增系列及首个型号') handleMoveSeries(); }
     async function handleMoveSeries(){
@@ -36,7 +39,7 @@ installLocalShell();
     function requestClose(){ if(!busy.value) discarding.value=true; }
     function discardDraft(){ confirming.value=false; discarding.value=false; dialog.value=null; }
     function submit(){ confirming.value=true; }
-    async function commit(){ busy.value=true; const kind=dialog.value; try { if(kind==='product') await api('/products',{method:'POST',body:JSON.stringify(form.value)}); else if(kind==='customer') await api('/partners',{method:'POST',body:JSON.stringify(form.value)}); else await api('/movements',{method:'POST',body:JSON.stringify(form.value)}); confirming.value=false; dialog.value=null; await load(); notify(kind==='customer'?'客户已保存':'已成功保存'); } catch(e){notify(e.message)} finally {busy.value=false} }
+    async function commit(){ busy.value=true; const kind=dialog.value; try { if(kind==='product') await api(form.value.id?`/products/${form.value.id}`:'/products',{method:form.value.id?'PUT':'POST',body:JSON.stringify(form.value)}); else if(kind==='customer') await api('/partners',{method:'POST',body:JSON.stringify(form.value)}); else await api('/movements',{method:'POST',body:JSON.stringify(form.value)}); confirming.value=false; dialog.value=null; await load(); notify(kind==='customer'?'客户已保存':'已成功保存'); } catch(e){notify(e.message)} finally {busy.value=false} }
     async function exportBackup(){ const backup=await api.exportState(); const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`wareboss-backup-${new Date().toISOString().slice(0,10)}.json`; link.click(); URL.revokeObjectURL(link.href); notify('备份文件已导出'); }
     const backupNeedsCustomer=backup=>{ const data=backup?.data||backup; return Array.isArray(data?.products)&&data.products.some(product=>!product.customerId); };
     const assignBackupCustomer=(backup,customer)=>{ const data=JSON.parse(JSON.stringify(backup?.data||backup)); data.customers=[customer]; data.products=data.products.map(product=>({...product,customerId:customer.id,customerName:customer.name})); data.movements=data.movements.map(item=>({...item,customerId:customer.id,customerName:customer.name})); return backup?.data?{...backup,data}:data; };

@@ -66,11 +66,23 @@ export function createLocalApi() {
     const payload = JSON.parse(options.body || '{}');
     if (url === '/products') {
       if (!payload.name || !payload.sku) throw new Error('请填写商品名称和编码');
-      if (data.products.some(item => item.sku === payload.sku && (item.category || '') === (payload.category || '其他') && (item.spec || '') === (payload.spec || ''))) throw new Error('该系列、商品编码和规格已存在');
       const customer = data.customers.find(item => item.id === payload.customerId);
       if (!customer) throw new Error('请先选择库存归属客户');
+      if (data.products.some(item => item.customerId === customer.id && item.sku === payload.sku && (item.category || '') === (payload.category || '其他') && (item.spec || '') === (payload.spec || ''))) throw new Error('该客户下相同系列、型号和规格已存在');
       const product = { id:`P${Date.now().toString().slice(-6)}`, name:payload.name, sku:payload.sku, category:payload.category || '其他', spec:payload.spec || '', unit:payload.unit || '件', openingStock:Number(payload.openingStock ?? payload.stock) || 0, stock:Number(payload.stock) || 0, safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配', remark:payload.remark || '', customerId:customer.id, customerName:customer.name };
       data.products.unshift(product); await save(data); return product;
+    }
+    if (url.startsWith('/products/') && options.method === 'PUT') {
+      const id = decodeURIComponent(url.slice('/products/'.length));
+      const product = data.products.find(item => item.id === id);
+      if (!product) throw new Error('未找到要修改的商品');
+      if (!payload.name || !payload.sku) throw new Error('请填写型号名称和编码');
+      const customer = data.customers.find(item => item.id === payload.customerId);
+      if (!customer) throw new Error('请先选择库存归属客户');
+      const duplicate = data.products.some(item => item.id !== id && item.customerId === customer.id && item.sku === payload.sku && (item.category || '') === (payload.category || '其他') && (item.spec || '') === (payload.spec || ''));
+      if (duplicate) throw new Error('该客户下相同系列、型号和规格已存在');
+      Object.assign(product, { name:payload.name, sku:payload.sku, category:payload.category || '其他', spec:payload.spec || '', unit:payload.unit || '件', safeStock:Number(payload.safeStock) || 0, cost:Number(payload.cost) || 0, price:Number(payload.price) || 0, location:payload.location || '待分配', remark:payload.remark || '', customerId:customer.id, customerName:customer.name });
+      await save(data); return product;
     }
     if (url === '/partners') {
       const type = payload.type === 'supplier' ? 'supplier' : 'customer';
