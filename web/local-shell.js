@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.16';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.16';
+import { createLocalApi } from './local-store.js?v=20261105.17';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.17';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -1045,6 +1045,31 @@ function installPageActions() {
   installMovementPrintAction();
   installMovementEditor();
   installProductRemarks();
+  installProductSeriesSuggestions();
+}
+
+function installProductSeriesSuggestions() {
+  const modal = document.querySelector('.modal');
+  if (!modal || modal.querySelector('.modal-title h2')?.textContent.trim() !== '新建商品') return;
+  const label = [...modal.querySelectorAll('label')].find(item => item.textContent.trim().startsWith('商品系列'));
+  const input = label?.querySelector('input');
+  if (!input || input.dataset.seriesBound) return;
+  input.dataset.seriesBound = 'true';
+  input.placeholder = '选择已有系列，或直接输入新系列';
+  const list = document.createElement('datalist');
+  list.id = `wb-product-series-${Date.now()}`;
+  input.setAttribute('list', list.id);
+  const customer = modal.querySelector('select');
+  const render = products => {
+    const series = [...new Set(products.filter(item => !customer?.value || item.customerId === customer.value).map(item => item.category || '其他'))].sort((left, right) => left.localeCompare(right, 'zh-CN'));
+    list.innerHTML = series.map(item => `<option value="${textForHtml(item)}"></option>`).join('');
+  };
+  createLocalApi()('/products').then(products => { render(products); customer?.addEventListener('change', () => render(products)); });
+  label.append(list);
+  const hint = document.createElement('small');
+  hint.className = 'wb-series-hint';
+  hint.textContent = '可从已有系列中选择；直接输入即可新增系列。';
+  label.append(hint);
 }
 
 export function installLocalShell() {

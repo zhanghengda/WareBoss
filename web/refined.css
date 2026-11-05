@@ -1,4 +1,5 @@
 /* Brand and dashboard polish, loaded after the base stylesheet. */
+.wb-series-hint{display:block;margin-top:5px;color:#6d858b;font-size:11px;font-weight:500;line-height:1.4}
 .wb-batch-row{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) 78px minmax(0,1fr) 36px!important}@media(max-width:640px){.wb-batch-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 34px!important}.wb-batch-row .series{grid-column:1 / span 2}.wb-batch-row .product{grid-column:1 / span 2}.wb-batch-row .quantity{grid-column:3;grid-row:2}.wb-batch-row .remove{grid-column:4;grid-row:2}}
 .wb-flow-report-dialog{height:min(90vh,760px)}
 .brand img{width:36px;height:36px;filter:drop-shadow(0 4px 7px #0d776932)}
