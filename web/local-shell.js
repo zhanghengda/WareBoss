@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.37';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.37';
+import { createLocalApi } from './local-store.js?v=20261105.38';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.38';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -1001,6 +1001,8 @@ function installMovementCustomerFilter() {
     controls.append(select, range, start, end, query, reset);
     query.addEventListener('click', apply);
     select.addEventListener('change', apply); range.addEventListener('change', () => { toggleCustomDates(); apply(); }); start.addEventListener('change', apply); end.addEventListener('change', apply); head.append(controls); toggleCustomDates(); apply();
+    installMovementMonthlyReportAction();
+    installMovementPrintAction();
   });
 }
 
