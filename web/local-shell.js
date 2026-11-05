@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.30';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.30';
+import { createLocalApi } from './local-store.js?v=20261105.31';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.31';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -614,9 +614,9 @@ async function showBatchMovementDialog(type) {
   if (!partnerData.customers.length) { window.alert('请先在“往来单位”中新建客户，再进行出入库。'); return; }
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<form class="wb-clear-dialog wb-batch-dialog wb-batch-${type}" role="dialog" aria-modal="true"><h2>${type === 'in' ? '采购入库（支持多商品）' : '销售出库'}</h2><p>${type === 'in' ? '选择客户后直接选型号；需要新型号时使用下方“新增型号”。' : '请选择该客户已经建立的型号，出库不允许新增商品。'}</p><label>库存归属客户<select class="customer"><option value="">请选择客户</option>${partnerData.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label>${type === 'in' ? '<label>供应商（可选）<input class="partner" placeholder="例如：华东包装材料"/></label>' : '<label>往来说明（可选）<input class="partner" placeholder="例如：客户自提"/></label>'}<section class="wb-batch-items"><h3>商品明细</h3><div class="rows"></div>${type === 'in' ? '<div class="wb-batch-row-actions"><button class="wb-add-line" type="button">＋ 添加商品</button><button class="wb-add-model" type="button">＋ 新增型号</button></div>' : ''}</section><label>经办人<input class="operator" value="管理员"/></label><label>单据备注（可选）<input class="note" placeholder="整单备注"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对并确认</button></div></form>`;
+  overlay.innerHTML = `<form class="wb-clear-dialog wb-batch-dialog wb-batch-${type}" role="dialog" aria-modal="true"><h2>${type === 'in' ? '采购入库（支持多商品）' : '销售出库（支持多商品）'}</h2><p>${type === 'in' ? '选择客户后直接选型号；需要新型号时使用下方“新增型号”。' : '默认单个型号出库；需要批量出库时可添加多个该客户已建立的型号。'}</p><label>库存归属客户<select class="customer"><option value="">请选择客户</option>${partnerData.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label>${type === 'in' ? '<label>供应商（可选）<input class="partner" placeholder="例如：华东包装材料"/></label>' : '<label>往来说明（可选）<input class="partner" placeholder="例如：客户自提"/></label>'}<section class="wb-batch-items"><h3>商品明细</h3><div class="rows"></div><div class="wb-batch-row-actions"><button class="wb-add-line" type="button">＋ 添加商品</button>${type === 'in' ? '<button class="wb-add-model" type="button">＋ 新增型号</button>' : ''}</div></section><label>经办人<input class="operator" value="管理员"/></label><label>单据备注（可选）<input class="note" placeholder="整单备注"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对并确认</button></div></form>`;
   const form = overlay.querySelector('form');
-  if (type === 'out') form.querySelector('h2').textContent = '销售出库';
+  if (type === 'out') form.querySelector('h2').textContent = '销售出库（支持多商品）';
   const customer = form.querySelector('.customer');
   const rows = form.querySelector('.rows');
   const productOptions = () => products.filter(product => product.customerId === customer.value).map(product => `<option value="${textForHtml(product.id)}">${textForHtml(product.category || '其他')} · ${textForHtml(product.sku || product.name)}｜库存 ${Number(product.stock || 0)}${textForHtml(product.unit || '件')}</option>`).join('');
