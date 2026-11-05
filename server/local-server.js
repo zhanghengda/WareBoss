@@ -16,7 +16,8 @@ const types = {
 };
 
 http.createServer((req, res) => {
-  const requestPath = req.url === '/' ? '/index.html' : decodeURIComponent(req.url.split('?')[0]);
+  const pathname = decodeURIComponent(req.url.split('?')[0]);
+  const requestPath = pathname === '/' ? '/index.html' : pathname;
   const file = path.normalize(path.join(webRoot, requestPath));
   if (!file.startsWith(`${webRoot}${path.sep}`) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404, { 'Content-Type':'text/plain; charset=utf-8' });
