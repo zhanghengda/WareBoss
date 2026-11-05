@@ -1,4 +1,4 @@
-const CACHE = 'wareboss-local-v2';
+const CACHE = 'wareboss-local-v3';
 const ASSETS = [
   './', './index.html', './app.js', './local-store.js', './local-shell.js', './excel-template.js',
   './vendor/vue.js', './vendor/xlsx.mjs', './vendor/xlsx-style.js',
@@ -23,8 +23,12 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
-        return response;
+        const responseForCache = response.ok ? response.clone() : null;
+        if (!responseForCache) return response;
+        return caches.open(CACHE)
+          .then(cache => cache.put(event.request, responseForCache))
+          .catch(() => undefined)
+          .then(() => response);
       })
       .catch(() => caches.match(event.request).then(cached => cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
