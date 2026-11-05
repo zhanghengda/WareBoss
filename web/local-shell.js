@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.36';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.36';
+import { createLocalApi } from './local-store.js?v=20261105.37';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.37';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -1209,6 +1209,36 @@ export function installLocalShell() {
   enablePageTopReset();
   enableDashboardDataRefresh();
   const refresh = () => { installAccountChip(); installPageActions(); };
-  new MutationObserver(refresh).observe(document.body, { childList:true, subtree:true });
-  if (ACCOUNTS[localStorage.getItem(SESSION_KEY)]) setTimeout(refresh, 0); else showLogin();
+  let refreshQueued = false;
+  let observedShell = null;
+  let observedMain = null;
+  let shellObserver = null;
+  let mainObserver = null;
+  const scheduleRefresh = () => {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    setTimeout(() => {
+      refreshQueued = false;
+      refresh();
+      const shell = document.querySelector('.shell');
+      const main = shell?.querySelector('main');
+      if (shell && shell !== observedShell) {
+        shellObserver?.disconnect();
+        observedShell = shell;
+        shellObserver = new MutationObserver(scheduleRefresh);
+        shellObserver.observe(shell, { childList:true });
+      }
+      if (main && main !== observedMain) {
+        mainObserver?.disconnect();
+        observedMain = main;
+        mainObserver = new MutationObserver(scheduleRefresh);
+        mainObserver.observe(main, { childList:true });
+      }
+    }, 0);
+  };
+  const appRoot = document.getElementById('app');
+  if (appRoot) new MutationObserver(scheduleRefresh).observe(appRoot, { childList:true });
+  window.addEventListener('wareboss:data-loaded', scheduleRefresh);
+  scheduleRefresh();
+  if (!ACCOUNTS[localStorage.getItem(SESSION_KEY)]) showLogin();
 }

@@ -11,7 +11,7 @@ window.addEventListener('error', event => showBootError(event.error || event.mes
 window.addEventListener('unhandledrejection', event => showBootError(event.reason));
 window.addEventListener('wareboss:boot-error', event => showBootError(event.detail));
 
-import('./app.js?v=20261105.36').catch(showBootError);
+import('./app.js?v=20261105.37').catch(showBootError);
 
 setTimeout(() => {
   if (appRoot && !appRoot.querySelector('.shell')) showBootError('启动超时：前端界面没有完成挂载。请把控制台的第一条红色错误发给技术支持。');
