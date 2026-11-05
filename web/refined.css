@@ -1,4 +1,5 @@
 /* Brand and dashboard polish, loaded after the base stylesheet. */
+.wb-alert-restock{border:1px solid #b9ddd6;border-radius:8px;background:#eff9f6;color:#13796b;padding:7px 9px;font:700 12px inherit;white-space:nowrap;cursor:pointer}.wb-alert-restock:active{transform:scale(.98)}@media(max-width:640px){.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto!important}.wb-alert-restock{grid-column:2 / -1;justify-self:end;margin-top:-2px;padding:6px 8px;font-size:11px}}
 .wb-series-hint{display:block;margin-top:5px;color:#6d858b;font-size:11px;font-weight:500;line-height:1.4}
 .wb-batch-row{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) 78px minmax(0,1fr) 36px!important}@media(max-width:640px){.wb-batch-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 34px!important}.wb-batch-row .series{grid-column:1 / span 2}.wb-batch-row .product{grid-column:1 / span 2}.wb-batch-row .quantity{grid-column:3;grid-row:2}.wb-batch-row .remove{grid-column:4;grid-row:2}}
 .wb-flow-report-dialog{height:min(90vh,760px)}

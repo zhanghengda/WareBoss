@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.17';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.17';
+import { createLocalApi } from './local-store.js?v=20261105.18';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.18';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -30,6 +30,7 @@ function injectStyle() {
     .dashboard>.grid{display:none!important}.wb-more-functions{grid-column:1/-1;padding:8px!important}.wb-more-functions h3{margin:8px 8px 12px;font-size:16px;color:#254b54}.wb-more-function{display:flex;align-items:center;width:100%;gap:12px;padding:14px 11px;border:0;border-top:1px solid #edf2f2;background:transparent;color:#23464e;font:inherit;text-align:left;cursor:pointer}.wb-more-function:first-of-type{border-top:0}.wb-more-function i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#e5f5f0;color:#147d70;font-size:18px;font-style:normal}.wb-more-function span{flex:1}.wb-more-function b{display:block;font-size:14px}.wb-more-function small{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-more-function em{color:#8da1a6;font-size:20px;font-style:normal}.wb-alert-card{grid-column:1/-1}.wb-alert-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #eaf0f0}.wb-alert-head h3{margin:0;font-size:16px;color:#244851}.wb-alert-list{margin-top:2px}.wb-alert-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #edf2f2}.wb-alert-item:last-child{border-bottom:0}.wb-alert-item i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff1ed;color:#d26b4f;font-style:normal}.wb-alert-item b{display:block;font-size:14px;color:#294b53}.wb-alert-item span{display:block;margin-top:3px;color:#71848a;font-size:12px}.wb-alert-item strong{color:#bf674b;font-size:13px;text-align:right}.wb-alert-item strong small{display:block;margin-top:3px;color:#89999d;font-size:11px;font-weight:500}@media(max-width:640px){.wb-more-functions{padding:5px!important}.wb-more-function{padding:13px 8px}.wb-alert-head{align-items:flex-start}.wb-alert-head .wb-customer-filter{max-width:150px}.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto;gap:8px}.wb-alert-item i{width:30px;height:30px}.wb-alert-item b{font-size:13px}.wb-alert-item span{font-size:11px}}
   `;
   style.textContent += '.wb-batch-row{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) 78px minmax(0,1fr) 36px!important}@media(max-width:640px){.wb-batch-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 34px!important}.wb-batch-row .series{grid-column:1 / span 2}.wb-batch-row .product{grid-column:1 / span 2}.wb-batch-row .quantity{grid-column:3;grid-row:2}.wb-batch-row .remove{grid-column:4;grid-row:2}}';
+  style.textContent += '.wb-alert-item{grid-template-columns:36px minmax(0,1fr) auto auto}@media(max-width:640px){.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto}.wb-alert-restock{grid-column:2 / -1;justify-self:end;margin-top:-2px;padding:6px 8px;font-size:11px}}';
   document.head.append(style);
 }
 
@@ -638,6 +639,23 @@ function installMoreFunctionList() {
 }
 
 let loadingAlerts = false;
+function showAlertRestockDialog(product) {
+  const suggested = Math.max(1, Number(product.safeStock || 0) - Number(product.stock || 0));
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  overlay.innerHTML = `<form class="wb-clear-dialog" role="dialog" aria-modal="true"><h2>预警商品快速入库</h2><p><b>${textForHtml(product.sku || product.name)}</b> · ${textForHtml(product.category || '其他')}<br/>当前库存 ${Number(product.stock || 0)} ${textForHtml(product.unit || '件')}，安全库存 ${Number(product.safeStock || 0)} ${textForHtml(product.unit || '件')}。</p><label style="display:grid;gap:7px;margin-top:15px;font-weight:600;color:#38545d">本次入库数量<input class="quantity" type="number" min="1" value="${suggested}" required style="border:1px solid #cbdadd;border-radius:8px;padding:9px;font:inherit"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对确认</button></div></form>`;
+  const form = overlay.querySelector('form');
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const quantity = Number(form.querySelector('.quantity').value);
+    if (!Number.isFinite(quantity) || quantity <= 0) { window.alert('请输入大于 0 的入库数量。'); return; }
+    showBatchConfirm({ type:'in', customerName:product.customerName || '未指定客户', items:[{ productId:product.id, quantity }] }, () => createLocalApi()('/movements', { method:'POST', body:JSON.stringify({ type:'in', customerId:product.customerId, productId:product.id, quantity, partner:'库存预警补货', operator:'管理员', note:'库存预警快速入库' }) }));
+    overlay.remove();
+  });
+  document.body.append(overlay);
+  setTimeout(() => overlay.querySelector('.quantity')?.focus(), 0);
+}
 function installCustomerAlerts() {
   const grid = document.querySelector('.partner-grid');
   if (!grid || document.querySelector('header h1')?.textContent.trim() !== '库存预警' || document.getElementById('wb-alert-card') || loadingAlerts) return;
@@ -653,7 +671,8 @@ function installCustomerAlerts() {
     const list = card.querySelector('.wb-alert-list');
     const render = () => {
       const rows = products.filter(product => (!select.value || product.customerId === select.value) && Number(product.stock || 0) <= Number(product.safeStock || 0));
-      list.innerHTML = rows.map(product => `<div class="wb-alert-item"><i>!</i><div><b>${textForHtml(product.name)}</b><span>${textForHtml(product.customerName || '未指定客户')} · ${textForHtml(product.location || '未设置库位')}</span></div><strong>${Number(product.stock || 0)} ${textForHtml(product.unit || '')}<small>安全库存 ${Number(product.safeStock || 0)}</small></strong></div>`).join('') || '<p class="empty">该客户暂无库存预警。</p>';
+      list.innerHTML = rows.map(product => `<div class="wb-alert-item"><i>!</i><div><b>${textForHtml(product.sku || product.name)}</b><span>${textForHtml(product.category || '其他')} · ${textForHtml(product.customerName || '未指定客户')} · ${textForHtml(product.location || '未设置库位')}</span></div><strong>${Number(product.stock || 0)} ${textForHtml(product.unit || '')}<small>安全库存 ${Number(product.safeStock || 0)}</small></strong><button type="button" class="wb-alert-restock" data-product-id="${textForHtml(product.id)}">快速入库</button></div>`).join('') || '<p class="empty">该客户暂无库存预警。</p>';
+      list.querySelectorAll('.wb-alert-restock').forEach(button => button.addEventListener('click', () => { const product = products.find(item => item.id === button.dataset.productId); if (product) showAlertRestockDialog(product); }));
     };
     select.addEventListener('change', render);
     render();
