@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.33';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.33';
+import { createLocalApi } from './local-store.js?v=20261105.34';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.34';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -1082,21 +1082,12 @@ function installProductRemarks() {
 
 function enableAutomaticUpdates() {
   if (!('serviceWorker' in navigator)) return;
-  let updateReady = false;
-  let reloaded = false;
-  const reloadWhenSafe = () => {
-    if (!updateReady || reloaded || document.querySelector('.modal,.overlay,.wb-gate')) return;
-    reloaded = true;
-    location.reload();
-  };
-  navigator.serviceWorker.addEventListener('controllerchange', () => { updateReady = true; reloadWhenSafe(); });
-  navigator.serviceWorker.register('./sw.js', { updateViaCache:'none' })
-    .then(registration => {
-      registration.update();
-      setInterval(() => registration.update(), 15 * 60 * 1000);
-    })
+  // The application data lives in IndexedDB, not in the Service Worker cache.
+  // Retire previously registered workers to prevent stale cached scripts from
+  // blocking a newly deployed version. unregister() does not delete IndexedDB.
+  navigator.serviceWorker.getRegistrations()
+    .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
     .catch(() => {});
-  document.addEventListener('click', () => setTimeout(reloadWhenSafe, 0));
 }
 
 function enablePageTopReset() {

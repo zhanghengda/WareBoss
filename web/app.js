@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.33';
-import { installLocalShell } from './local-shell.js?v=20261105.33';
+import { createLocalApi } from './local-store.js?v=20261105.34';
+import { installLocalShell } from './local-shell.js?v=20261105.34';
 
 const api = createLocalApi();
 installLocalShell();
@@ -60,7 +60,7 @@ installLocalShell();
       more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
     };
     const nav=[['dashboard','dashboard'],['products','products'],['movements','movements'],['alerts','bell'],['backup','backup'],['inbound','inbound'],['outbound','outbound'],['partners','partners']];
-    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=20261105.33'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,form,busy,toast,backupInput,pages,filtered,customerProducts,customerSeries,moveProducts,fmt,open,syncMoveCustomer,syncMoveSeries,handleMoveSeries,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
+    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(registrations=>Promise.all(registrations.map(registration=>registration.unregister()))).catch(()=>{}); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,form,busy,toast,backupInput,pages,filtered,customerProducts,customerSeries,moveProducts,fmt,open,syncMoveCustomer,syncMoveSeries,handleMoveSeries,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
   },
   template:`
   <div class="shell"><aside class="side"><div class="brand"><img src="./logo.svg" alt="WareBoss 标志"/><span>Ware<b>Boss</b><small>SMART WAREHOUSE</small></span></div><nav><button v-for="n in nav" :class="{active:page===n[0]}" @click="page=n[0]"><i v-html="icons[n[1]]"></i>{{pages[n[0]]}}</button></nav><div class="side-user"><div>张</div><span>张仓管<small>仓库管理员</small></span><b>⌄</b></div></aside>
