@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.31';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.31';
+import { createLocalApi } from './local-store.js?v=20261105.32';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.32';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -659,14 +659,21 @@ async function showBatchMovementDialog(type) {
 function installDashboardQuickActions() {
   const dashboard = document.querySelector('.dashboard');
   const welcome = dashboard?.querySelector('.welcome');
-  if (!dashboard || !welcome || document.getElementById('wb-quick-actions')) return;
-  const card = document.createElement('section');
-  card.id = 'wb-quick-actions';
-  card.className = 'wb-quick-actions';
-  card.innerHTML = '<button type="button" class="wb-quick-action in"><i>↓</i><span><b>采购入库</b>选择客户后批量入库</span></button><button type="button" class="wb-quick-action out"><i>↑</i><span><b>销售出库</b>选择客户后批量出库</span></button>';
-  card.querySelector('.in').addEventListener('click', () => showBatchMovementDialog('in').catch(error => window.alert(error.message || '无法打开入库单。')));
-  card.querySelector('.out').addEventListener('click', () => showBatchMovementDialog('out').catch(error => window.alert(error.message || '无法打开出库单。')));
-  welcome.insertAdjacentElement('afterend', card);
+  if (!dashboard || !welcome) return;
+  let card = document.getElementById('wb-quick-actions');
+  if (!card) {
+    card = document.createElement('section');
+    card.id = 'wb-quick-actions';
+    card.className = 'wb-quick-actions';
+    card.innerHTML = '<button type="button" class="wb-quick-action in"><i>↓</i><span><b>采购入库</b>选择客户后批量入库</span></button><button type="button" class="wb-quick-action out"><i>↑</i><span><b>销售出库</b>选择客户后批量出库</span></button>';
+    card.querySelector('.in').addEventListener('click', () => showBatchMovementDialog('in').catch(error => window.alert(error.message || '无法打开入库单。')));
+    card.querySelector('.out').addEventListener('click', () => showBatchMovementDialog('out').catch(error => window.alert(error.message || '无法打开出库单。')));
+  }
+  const customerStats = document.getElementById('wb-home-customers');
+  const flowSummary = document.getElementById('wb-flow-summary');
+  if (customerStats) customerStats.before(card);
+  else if (flowSummary) flowSummary.insertAdjacentElement('afterend', card);
+  else welcome.insertAdjacentElement('afterend', card);
 }
 
 function goToPage(name) {
