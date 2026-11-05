@@ -20,10 +20,13 @@ http.createServer((req, res) => {
   const requestPath = pathname === '/' ? '/index.html' : pathname;
   const file = path.normalize(path.join(webRoot, requestPath));
   if (!file.startsWith(`${webRoot}${path.sep}`) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-    res.writeHead(404, { 'Content-Type':'text/plain; charset=utf-8' });
+    res.writeHead(404, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store, max-age=0, must-revalidate' });
     res.end('页面不存在');
     return;
   }
-  res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
+  res.writeHead(200, {
+    'Content-Type': types[path.extname(file)] || 'application/octet-stream',
+    'Cache-Control':'no-store, max-age=0, must-revalidate'
+  });
   fs.createReadStream(file).pipe(res);
 }).listen(port, () => console.log(`WareBoss local server running at http://localhost:${port}`));
