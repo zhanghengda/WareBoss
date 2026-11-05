@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.18';
-import { installLocalShell } from './local-shell.js?v=20261105.18';
+import { createLocalApi } from './local-store.js?v=20261105.19';
+import { installLocalShell } from './local-shell.js?v=20261105.19';
 
 const api = createLocalApi();
 installLocalShell();

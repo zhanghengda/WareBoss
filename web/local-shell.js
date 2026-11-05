@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.18';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.18';
+import { createLocalApi } from './local-store.js?v=20261105.19';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.19';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -1070,25 +1070,35 @@ function installPageActions() {
 function installProductSeriesSuggestions() {
   const modal = document.querySelector('.modal');
   if (!modal || modal.querySelector('.modal-title h2')?.textContent.trim() !== '新建商品') return;
-  const label = [...modal.querySelectorAll('label')].find(item => item.textContent.trim().startsWith('商品系列'));
-  const input = label?.querySelector('input');
+  const originalLabel = [...modal.querySelectorAll('label')].find(item => item.textContent.trim().startsWith('商品系列'));
+  const input = originalLabel?.querySelector('input');
   if (!input || input.dataset.seriesBound) return;
   input.dataset.seriesBound = 'true';
-  input.placeholder = '选择已有系列，或直接输入新系列';
-  const list = document.createElement('datalist');
-  list.id = `wb-product-series-${Date.now()}`;
-  input.setAttribute('list', list.id);
+  originalLabel.hidden = true;
+  const modelLabel = [...modal.querySelectorAll('label')].find(item => item.textContent.trim().startsWith('型号名称'));
+  const label = document.createElement('label');
+  label.className = 'wb-product-series-select';
+  label.innerHTML = '商品系列<select required><option value="">请选择商品系列</option><option value="__new__">＋ 新增系列</option></select><small class="wb-series-hint">先选择系列，再填写该系列下的型号。</small>';
+  modelLabel?.before(label);
+  const select = label.querySelector('select');
   const customer = modal.querySelector('select');
   const render = products => {
     const series = [...new Set(products.filter(item => !customer?.value || item.customerId === customer.value).map(item => item.category || '其他'))].sort((left, right) => left.localeCompare(right, 'zh-CN'));
-    list.innerHTML = series.map(item => `<option value="${textForHtml(item)}"></option>`).join('');
+    if (input.value && !series.includes(input.value)) series.push(input.value);
+    select.innerHTML = `<option value="">请选择商品系列</option>${series.map(item => `<option value="${textForHtml(item)}">${textForHtml(item)}</option>`).join('')}<option value="__new__">＋ 新增系列</option>`;
+    select.value = input.value || '';
   };
-  createLocalApi()('/products').then(products => { render(products); customer?.addEventListener('change', () => render(products)); });
-  label.append(list);
-  const hint = document.createElement('small');
-  hint.className = 'wb-series-hint';
-  hint.textContent = '可从已有系列中选择；直接输入即可新增系列。';
-  label.append(hint);
+  const setSeries = value => { input.value = value; input.dispatchEvent(new Event('input', { bubbles:true })); input.dispatchEvent(new Event('change', { bubbles:true })); };
+  createLocalApi()('/products').then(products => {
+    render(products);
+    customer?.addEventListener('change', () => render(products));
+    select.addEventListener('change', () => {
+      if (select.value !== '__new__') { setSeries(select.value); return; }
+      const series = window.prompt('请输入新商品系列名称，例如：新风、配件')?.trim();
+      if (!series) { select.value = input.value || ''; return; }
+      setSeries(series); render(products);
+    });
+  });
 }
 
 export function installLocalShell() {
