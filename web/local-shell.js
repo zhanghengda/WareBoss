@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.29';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.29';
+import { createLocalApi } from './local-store.js?v=20261105.30';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.30';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -35,6 +35,7 @@ function injectStyle() {
   style.textContent += '.wb-batch-row .product-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}.wb-batch-row .new-model{border:1px solid #9acfc6;border-radius:7px;background:#effaf7;color:#117d70;padding:0 8px;font:700 12px inherit;white-space:nowrap;cursor:pointer}.wb-new-model-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-new-model-dialog input,.wb-new-model-dialog select{width:100%;box-sizing:border-box;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-new-model-dialog .new-series{display:none}@media(max-width:640px){.wb-batch-row .product-picker{grid-column:1 / span 2}.wb-batch-row .new-model{padding:0 7px;font-size:11px}}';
   style.textContent += '.wb-product-compact-table{width:100%!important;min-width:0!important;table-layout:fixed}.wb-product-compact-table th,.wb-product-compact-table td{overflow:hidden;text-overflow:ellipsis}@media(max-width:640px){.wb-product-compact-table{font-size:11px}.wb-product-compact-table th,.wb-product-compact-table td{padding:9px 4px!important;white-space:nowrap}.wb-product-compact-table th:nth-child(1){width:16%}.wb-product-compact-table th:nth-child(2){width:42%}.wb-product-compact-table th:nth-child(3){width:23%}.wb-product-compact-table th:nth-child(4){width:19%}.wb-product-compact-table td:nth-child(2) small{display:none}.wb-product-compact-table td b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wb-product-compact-table .wb-product-actions{justify-content:flex-start;gap:6px;margin:7px 0 0;white-space:nowrap}.wb-product-compact-table .wb-product-actions button{padding:5px 8px;font-size:11px}}';
   style.textContent += '@media(max-width:640px){.wb-batch-out .wb-batch-row{grid-template-columns:minmax(0,1fr) 66px 34px!important;gap:8px}.wb-batch-out .wb-batch-row .series{grid-column:1 / -1!important;grid-row:1}.wb-batch-out .wb-batch-row .product-picker{grid-column:1!important;grid-row:2}.wb-batch-out .wb-batch-row .quantity{grid-column:2!important;grid-row:2}.wb-batch-out .wb-batch-row .remove{grid-column:3!important;grid-row:2}.wb-batch-out .wb-batch-row .note{display:none}}';
+  style.textContent += '.wb-batch-row{grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr) 36px!important}.wb-batch-row .product-picker{display:block!important;grid-column:auto!important}.wb-batch-row-actions{display:flex;gap:9px;margin-top:11px}.wb-batch-row-actions button{border:1px dashed #82b9b1;border-radius:8px;background:#f3fbf9;color:#167869;padding:9px 11px;font:700 13px inherit;cursor:pointer}.wb-batch-row-actions .wb-add-model{border-color:#b9aee8;background:#f5f2ff;color:#6b55bb}.wb-batch-dialog .wb-batch-items>h3{margin-bottom:11px}@media(max-width:640px){.wb-batch-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:20px 18px}.wb-batch-row{grid-template-columns:minmax(0,1fr) 66px 34px!important;gap:8px}.wb-batch-row .product-picker{grid-column:1!important;grid-row:1}.wb-batch-row .quantity{grid-column:2!important;grid-row:1}.wb-batch-row .remove{grid-column:3!important;grid-row:1}.wb-batch-row .note{display:none}.wb-batch-row-actions{margin:12px 0 2px}.wb-batch-row-actions button{flex:1;padding:10px 7px;font-size:12px}}';
   document.head.append(style);
 }
 
@@ -613,36 +614,35 @@ async function showBatchMovementDialog(type) {
   if (!partnerData.customers.length) { window.alert('请先在“往来单位”中新建客户，再进行出入库。'); return; }
   const overlay = document.createElement('div');
   overlay.className = 'wb-clear-overlay';
-  overlay.innerHTML = `<form class="wb-clear-dialog wb-batch-dialog wb-batch-${type}" role="dialog" aria-modal="true"><h2>${type === 'in' ? '采购入库' : '销售出库'}（支持多商品）</h2><p>${type === 'in' ? '先选择库存归属客户，再直接选择型号；商品系列仅用于可选筛选。' : '请选择该客户已经建立的系列与型号，出库不允许新增商品。'}</p><label>库存归属客户<select class="customer"><option value="">请选择客户</option>${partnerData.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label>${type === 'in' ? '<label>供应商（可选）<input class="partner" placeholder="例如：华东包装材料"/></label>' : '<label>往来说明（可选）<input class="partner" placeholder="例如：客户自提"/></label>'}<section class="wb-batch-items"><h3>商品明细</h3><div class="rows"></div>${type === 'in' ? '<button class="wb-add-line" type="button">＋ 添加商品</button>' : ''}</section><label>经办人<input class="operator" value="管理员"/></label><label>单据备注（可选）<input class="note" placeholder="整单备注"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对并确认</button></div></form>`;
+  overlay.innerHTML = `<form class="wb-clear-dialog wb-batch-dialog wb-batch-${type}" role="dialog" aria-modal="true"><h2>${type === 'in' ? '采购入库（支持多商品）' : '销售出库'}</h2><p>${type === 'in' ? '选择客户后直接选型号；需要新型号时使用下方“新增型号”。' : '请选择该客户已经建立的型号，出库不允许新增商品。'}</p><label>库存归属客户<select class="customer"><option value="">请选择客户</option>${partnerData.customers.map(customer => `<option value="${textForHtml(customer.id)}">${textForHtml(customer.name)}</option>`).join('')}</select></label>${type === 'in' ? '<label>供应商（可选）<input class="partner" placeholder="例如：华东包装材料"/></label>' : '<label>往来说明（可选）<input class="partner" placeholder="例如：客户自提"/></label>'}<section class="wb-batch-items"><h3>商品明细</h3><div class="rows"></div>${type === 'in' ? '<div class="wb-batch-row-actions"><button class="wb-add-line" type="button">＋ 添加商品</button><button class="wb-add-model" type="button">＋ 新增型号</button></div>' : ''}</section><label>经办人<input class="operator" value="管理员"/></label><label>单据备注（可选）<input class="note" placeholder="整单备注"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对并确认</button></div></form>`;
   const form = overlay.querySelector('form');
   if (type === 'out') form.querySelector('h2').textContent = '销售出库';
   const customer = form.querySelector('.customer');
   const rows = form.querySelector('.rows');
-  const seriesOptions = () => [...new Set(products.filter(product => product.customerId === customer.value).map(product => product.category || '其他'))].sort((left, right) => left.localeCompare(right, 'zh-CN')).map(series => `<option value="${textForHtml(series)}">${textForHtml(series)}</option>`).join('');
-  const productOptions = series => products.filter(product => product.customerId === customer.value && (!series || (product.category || '其他') === series)).map(product => `<option value="${textForHtml(product.id)}">${textForHtml(product.sku || product.name)}｜库存 ${Number(product.stock || 0)}${textForHtml(product.unit || '件')}</option>`).join('');
+  const productOptions = () => products.filter(product => product.customerId === customer.value).map(product => `<option value="${textForHtml(product.id)}">${textForHtml(product.category || '其他')} · ${textForHtml(product.sku || product.name)}｜库存 ${Number(product.stock || 0)}${textForHtml(product.unit || '件')}</option>`).join('');
   const addRow = () => {
     const row = document.createElement('div');
     row.className = 'wb-batch-row';
-    row.innerHTML = `<select class="series" ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '全部系列（不筛选）' : '请先选择客户'}</option>${seriesOptions()}</select><div class="product-picker"><select class="product" required ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '请选择型号' : '请先选择客户'}</option>${customer.value ? productOptions('') : ''}</select>${type === 'in' ? `<button class="new-model" type="button" ${customer.value ? '' : 'disabled'}>＋型号</button>` : ''}</div><input class="quantity" type="number" min="1" value="1" required/><input class="note" placeholder="本行备注（可选）"/><button class="remove" type="button" aria-label="删除本行">×</button>`;
-    const series = row.querySelector('.series'), product = row.querySelector('.product');
-    series.addEventListener('change', () => { product.disabled = !customer.value; product.innerHTML = `<option value="">请选择型号</option>${productOptions(series.value)}`; });
+    row.innerHTML = `<div class="product-picker"><select class="product" required ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '请选择型号' : '请先选择客户'}</option>${customer.value ? productOptions() : ''}</select></div><input class="quantity" type="number" min="1" value="1" required/><input class="note" placeholder="本行备注（可选）"/><button class="remove" type="button" aria-label="删除本行">×</button>`;
+    const product = row.querySelector('.product');
     row.querySelector('.remove').addEventListener('click', () => { if (rows.children.length > 1) row.remove(); });
-    row.querySelector('.new-model')?.addEventListener('click', () => {
-      const selectedCustomer = partnerData.customers.find(item => item.id === customer.value);
-      if (!selectedCustomer) return;
-      showNewModelDialog({ customer:selectedCustomer, products, initialSeries:series.value, onCreated:created => {
-        products.push(created);
-        series.innerHTML = `<option value="">全部系列（不筛选）</option>${seriesOptions()}`;
-        series.value = created.category;
-        product.disabled = false;
-        product.innerHTML = `<option value="">请选择型号</option>${productOptions(created.category)}`;
-        product.value = created.id;
-      }});
-    });
     rows.append(row);
+    return row;
   };
   customer.addEventListener('change', () => { rows.innerHTML = ''; addRow(); });
   form.querySelector('.wb-add-line')?.addEventListener('click', addRow);
+  form.querySelector('.wb-add-model')?.addEventListener('click', () => {
+    const selectedCustomer = partnerData.customers.find(item => item.id === customer.value);
+    if (!selectedCustomer) { window.alert('请先选择库存归属客户。'); return; }
+    showNewModelDialog({ customer:selectedCustomer, products, initialSeries:'', onCreated:created => {
+      products.push(created);
+      const target = [...rows.querySelectorAll('.wb-batch-row')].find(item => !item.querySelector('.product').value) || addRow();
+      const select = target.querySelector('.product');
+      select.disabled = false;
+      select.innerHTML = `<option value="">请选择型号</option>${productOptions()}`;
+      select.value = created.id;
+    }});
+  });
   form.querySelector('.cancel').addEventListener('click', () => overlay.remove());
   form.addEventListener('submit', event => {
     event.preventDefault();
