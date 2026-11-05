@@ -1,6 +1,12 @@
-import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.35';
-import { installLocalShell } from './local-shell.js?v=20261105.35';
+import { createApp as createVueApp, ref, computed, onMounted } from './vendor/vue.js';
+import { createLocalApi } from './local-store.js?v=20261105.36';
+import { installLocalShell } from './local-shell.js?v=20261105.36';
+
+const createApp = options => {
+  const app = createVueApp(options);
+  app.config.errorHandler = error => window.dispatchEvent(new CustomEvent('wareboss:boot-error', { detail:error }));
+  return app;
+};
 
 const api = createLocalApi();
 installLocalShell();

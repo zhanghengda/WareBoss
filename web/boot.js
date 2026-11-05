@@ -9,9 +9,10 @@ function showBootError(error) {
 
 window.addEventListener('error', event => showBootError(event.error || event.message));
 window.addEventListener('unhandledrejection', event => showBootError(event.reason));
+window.addEventListener('wareboss:boot-error', event => showBootError(event.detail));
 
-import('./app.js?v=20261105.35').catch(showBootError);
+import('./app.js?v=20261105.36').catch(showBootError);
 
 setTimeout(() => {
-  if (appRoot && !appRoot.childElementCount) showBootError('启动超时：前端模块没有完成挂载。');
+  if (appRoot && !appRoot.querySelector('.shell')) showBootError('启动超时：前端界面没有完成挂载。请把控制台的第一条红色错误发给技术支持。');
 }, 6000);

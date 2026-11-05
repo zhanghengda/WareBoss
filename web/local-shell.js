@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.35';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.35';
+import { createLocalApi } from './local-store.js?v=20261105.36';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.36';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
