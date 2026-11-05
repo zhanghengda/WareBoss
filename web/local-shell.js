@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.15';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.15';
+import { createLocalApi } from './local-store.js?v=20261105.16';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.16';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -564,14 +564,24 @@ async function showBatchMovementDialog(type) {
   const form = overlay.querySelector('form');
   const customer = form.querySelector('.customer');
   const rows = form.querySelector('.rows');
-  const seriesOptions = () => [...new Set(products.filter(product => product.customerId === customer.value).map(product => product.category || '其他'))].sort((left, right) => left.localeCompare(right, 'zh-CN')).map(series => `<option value="${textForHtml(series)}">${textForHtml(series)}</option>`).join('');
+  const newSeriesOption = '＋ 新增系列及首个型号';
+  const seriesOptions = () => [...new Set(products.filter(product => product.customerId === customer.value).map(product => product.category || '其他'))].sort((left, right) => left.localeCompare(right, 'zh-CN')).concat(newSeriesOption).map(series => `<option value="${textForHtml(series)}">${textForHtml(series)}</option>`).join('');
   const productOptions = series => products.filter(product => product.customerId === customer.value && (!series || (product.category || '其他') === series)).map(product => `<option value="${textForHtml(product.id)}">${textForHtml(product.sku || product.name)} · ${textForHtml(product.spec || '无规格')}（库存 ${Number(product.stock || 0)}${textForHtml(product.unit || '件')}）</option>`).join('');
   const addRow = () => {
     const row = document.createElement('div');
     row.className = 'wb-batch-row';
     row.innerHTML = `<select class="series" required ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '请选择商品系列' : '请先选择客户'}</option>${seriesOptions()}</select><select class="product" required disabled><option value="">请先选择商品系列</option></select><input class="quantity" type="number" min="1" value="1" required/><input class="note" placeholder="本行备注（可选）"/><button class="remove" type="button" aria-label="删除本行">×</button>`;
     const series = row.querySelector('.series'), product = row.querySelector('.product');
-    series.addEventListener('change', () => { product.disabled = !series.value; product.innerHTML = `<option value="">请选择型号</option>${productOptions(series.value)}`; });
+    series.addEventListener('change', async () => {
+      if(series.value !== newSeriesOption) { product.disabled = !series.value; product.innerHTML = `<option value="">请选择型号</option>${productOptions(series.value)}`; return; }
+      const category = window.prompt('请输入新商品系列名称，例如：新风、配件')?.trim();
+      if(!category) { series.value = ''; return; }
+      const model = window.prompt(`请输入“${category}”的首个型号`)?.trim();
+      if(!model) { series.value = ''; return; }
+      const spec = window.prompt('规格（可留空），例如：1*1')?.trim() || '';
+      series.disabled = true; product.disabled = true;
+      try { const created = await api('/products', { method:'POST', body:JSON.stringify({ customerId:customer.value, name:model, sku:model, category, spec, unit:'件', stock:0, safeStock:0, cost:0, price:0, location:'待分配' }) }); products.push(created); series.innerHTML = `<option value="">请选择商品系列</option>${seriesOptions()}`; series.value = category; product.disabled = false; product.innerHTML = `<option value="">请选择型号</option>${productOptions(category)}`; product.value = created.id; } catch(error) { series.value = ''; window.alert(error.message || '新增系列失败，请重试。'); } finally { series.disabled = false; }
+    });
     row.querySelector('.remove').addEventListener('click', () => { if (rows.children.length > 1) row.remove(); });
     rows.append(row);
   };

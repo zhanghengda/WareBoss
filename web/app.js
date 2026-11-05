@@ -1,6 +1,6 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.15';
-import { installLocalShell } from './local-shell.js?v=20261105.15';
+import { createLocalApi } from './local-store.js?v=20261105.16';
+import { installLocalShell } from './local-shell.js?v=20261105.16';
 
 const api = createLocalApi();
 installLocalShell();
@@ -15,14 +15,24 @@ installLocalShell();
     const pages={dashboard:'经营总览',products:'商品库存',inbound:'采购入库',outbound:'销售出库',movements:'出入库流水',alerts:'库存预警',backup:'数据备份',partners:'更多功能'};
     const filtered=computed(()=>products.value.filter(p=>`${p.name}${p.sku}${p.category}${p.customerName||''}`.toLowerCase().includes(query.value.toLowerCase())));
     const customerProducts=computed(()=>products.value.filter(product=>product.customerId===form.value.customerId));
-    const customerSeries=computed(()=>[...new Set(customerProducts.value.map(product=>product.category||'其他'))].sort((left,right)=>left.localeCompare(right,'zh-CN')));
+    const customerSeries=computed(()=>[...new Set(customerProducts.value.map(product=>product.category||'其他'))].sort((left,right)=>left.localeCompare(right,'zh-CN')).concat('＋ 新增系列及首个型号'));
     const moveProducts=computed(()=>customerProducts.value.filter(product=>!form.value.series||(product.category||'其他')===form.value.series));
     const fmt=n=>new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY',maximumFractionDigits:0}).format(n||0);
     const notify=t=>{toast.value=t; setTimeout(()=>toast.value='',2600)};
     async function load(){ [overview.value,products.value,movements.value,partners.value]=await Promise.all([api('/overview'),api('/products'),api('/movements'),api('/partners')]); window.dispatchEvent(new Event('wareboss:data-loaded')); }
     function open(kind){ dialog.value=kind; form.value=kind==='product'?blankProduct():kind==='customer'?blankCustomer():blankMove(kind); }
     function syncMoveCustomer(){ form.value.series=''; form.value.productId=''; }
-    function syncMoveSeries(){ form.value.productId=''; }
+    function syncMoveSeries(){ form.value.productId=''; if(form.value.series==='＋ 新增系列及首个型号') handleMoveSeries(); }
+    async function handleMoveSeries(){
+      if(form.value.series!=='＋ 新增系列及首个型号') { syncMoveSeries(); return; }
+      const series=window.prompt('请输入新商品系列名称，例如：新风、配件')?.trim();
+      if(!series){ form.value.series=''; return; }
+      const model=window.prompt(`请输入“${series}”的首个型号`)?.trim();
+      if(!model){ form.value.series=''; return; }
+      const spec=window.prompt('规格（可留空），例如：1*1')?.trim() || '';
+      busy.value=true;
+      try { const product=await api('/products',{method:'POST',body:JSON.stringify({customerId:form.value.customerId,name:model,sku:model,category:series,spec,unit:'件',stock:0,safeStock:0,cost:0,price:0,location:'待分配'})}); products.value.push(product); form.value.series=series; form.value.productId=product.id; notify(`已新增系列“${series}”及型号“${model}”`); } catch(error){ form.value.series=''; notify(error.message); } finally { busy.value=false; }
+    }
     function requestClose(){ if(!busy.value) discarding.value=true; }
     function discardDraft(){ confirming.value=false; discarding.value=false; dialog.value=null; }
     function submit(){ confirming.value=true; }
@@ -47,7 +57,7 @@ installLocalShell();
       more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
     };
     const nav=[['dashboard','dashboard'],['products','products'],['movements','movements'],['alerts','bell'],['backup','backup'],['inbound','inbound'],['outbound','outbound'],['partners','partners']];
-    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,form,busy,toast,backupInput,pages,filtered,customerProducts,customerSeries,moveProducts,fmt,open,syncMoveCustomer,syncMoveSeries,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
+    onMounted(()=>{ load(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js'); }); return {page,overview,products,movements,partners,query,dialog,confirming,discarding,importCandidate,importCustomerId,backupNeedsCustomer,clearCandidate,form,busy,toast,backupInput,pages,filtered,customerProducts,customerSeries,moveProducts,fmt,open,syncMoveCustomer,syncMoveSeries,handleMoveSeries,requestClose,discardDraft,submit,commit,exportBackup,importBackup,confirmImport,confirmClear,nav,icons};
   },
   template:`
   <div class="shell"><aside class="side"><div class="brand"><img src="./logo.svg" alt="WareBoss 标志"/><span>Ware<b>Boss</b><small>SMART WAREHOUSE</small></span></div><nav><button v-for="n in nav" :class="{active:page===n[0]}" @click="page=n[0]"><i v-html="icons[n[1]]"></i>{{pages[n[0]]}}</button></nav><div class="side-user"><div>张</div><span>张仓管<small>仓库管理员</small></span><b>⌄</b></div></aside>
