@@ -83,7 +83,7 @@ export function parseMonthlyReport(buffer) {
   const movements = detailedMovements === null ? summarizedMovements : detailedMovements;
   if (errors.length) throw new Error(`模板校验未通过：\n${errors.slice(0, 6).join('\n')}${errors.length > 6 ? `\n另有 ${errors.length - 6} 项问题。` : ''}`);
   if (!products.length) throw new Error('模板中没有可导入的商品行。');
-  return { state:{ products, suppliers:[], customers:[], movements }, summary:{ sheetName:found.name, productCount:products.length, inboundCount:movements.filter(item => item.type === 'in').length, outboundCount:movements.filter(item => item.type === 'out').length } };
+  return { state:{ products, suppliers:[], customers:[], movements }, summary:{ sheetName:found.name, productCount:products.length, series:[...new Set(products.map(product => product.category).filter(Boolean))], inboundCount:movements.filter(item => item.type === 'in').length, outboundCount:movements.filter(item => item.type === 'out').length } };
 }
 
 function movementsFor(product, movements) {
