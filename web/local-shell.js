@@ -1,5 +1,5 @@
-import { createLocalApi } from './local-store.js?v=20261105.22';
-import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.22';
+import { createLocalApi } from './local-store.js?v=20261105.23';
+import { createMonthlyReport, parseMonthlyReport } from './excel-template.js?v=20261105.23';
 
 const ACCOUNTS = Object.fromEntries(['001', '002', '003', '004', '005'].map(id => [id, { password: '123456', name: `仓库管理员 ${id}` }]));
 const SESSION_KEY = 'wareboss-local-account';
@@ -31,6 +31,7 @@ function injectStyle() {
   `;
   style.textContent += '.wb-batch-row{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) 78px minmax(0,1fr) 36px!important}@media(max-width:640px){.wb-batch-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 34px!important}.wb-batch-row .series{grid-column:1 / span 2}.wb-batch-row .product{grid-column:1 / span 2}.wb-batch-row .quantity{grid-column:3;grid-row:2}.wb-batch-row .remove{grid-column:4;grid-row:2}}';
   style.textContent += '.wb-alert-item{grid-template-columns:36px minmax(0,1fr) auto auto}@media(max-width:640px){.wb-alert-item{grid-template-columns:32px minmax(0,1fr) auto}.wb-alert-restock{grid-column:2 / -1;justify-self:end;margin-top:-2px;padding:6px 8px;font-size:11px}}';
+  style.textContent += '.wb-product-actions{display:flex;gap:6px;margin-top:7px}.wb-product-actions button{border:0;border-radius:6px;padding:5px 8px;background:#e7f6f2;color:#10796b;font:700 11px inherit;cursor:pointer}.wb-product-actions .out{background:#f1eeff;color:#705ac1}.wb-product-quick-dialog label{display:grid;gap:6px;margin-top:13px;color:#38545d;font-size:13px;font-weight:700}.wb-product-quick-dialog input{width:100%;box-sizing:border-box;border:1px solid #cbdadd;border-radius:8px;padding:9px;background:white;color:#203d46;font:inherit}.wb-product-quick-dialog .wb-product-context{margin:0;padding:10px 12px;border-radius:9px;background:#eff8f6;color:#365b61;font-size:13px;line-height:1.55}';
   document.head.append(style);
 }
 
@@ -555,6 +556,26 @@ function showBatchConfirm(summary, onConfirm) {
   document.body.append(overlay);
 }
 
+function showProductQuickMovement(product, type) {
+  const overlay = document.createElement('div');
+  overlay.className = 'wb-clear-overlay';
+  const title = type === 'in' ? '商品快捷入库' : '商品快捷出库';
+  const partnerLabel = type === 'in' ? '供应商（可选）' : '往来说明（可选）';
+  const partnerPlaceholder = type === 'in' ? '例如：华东包装材料' : '例如：客户自提';
+  overlay.innerHTML = `<form class="wb-clear-dialog wb-product-quick-dialog" role="dialog" aria-modal="true"><h2>${title}</h2><p class="wb-product-context"><b>${textForHtml(product.category || '其他')} · ${textForHtml(product.sku || product.name)}</b><br/>客户：${textForHtml(product.customerName || '未指定客户')}；当前库存：${Number(product.stock || 0)} ${textForHtml(product.unit || '件')}</p><label>本次数量<input class="quantity" type="number" min="1" value="1" required/></label><label>${partnerLabel}<input class="partner" placeholder="${partnerPlaceholder}"/></label><label>备注（可选）<input class="note" placeholder="本次${type === 'in' ? '入库' : '出库'}说明"/></label><div class="wb-clear-actions"><button class="cancel" type="button">取消</button><button class="confirm" type="submit">下一步：核对确认</button></div></form>`;
+  const form = overlay.querySelector('form');
+  overlay.querySelector('.cancel').addEventListener('click', () => overlay.remove());
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const quantity = Number(form.querySelector('.quantity').value);
+    if (!Number.isFinite(quantity) || quantity <= 0) { window.alert('请输入大于 0 的数量。'); return; }
+    if (type === 'out' && quantity > Number(product.stock || 0)) { window.alert('出库数量不能大于当前库存。'); return; }
+    showBatchConfirm({ type, customerName:product.customerName || '未指定客户', items:[{ productId:product.id, quantity }] }, () => createLocalApi()('/movements', { method:'POST', body:JSON.stringify({ type, customerId:product.customerId, productId:product.id, quantity, partner:form.querySelector('.partner').value.trim(), operator:'管理员', note:form.querySelector('.note').value.trim() }) }));
+    overlay.remove();
+  });
+  document.body.append(overlay);
+}
+
 async function showBatchMovementDialog(type) {
   const api = createLocalApi();
   const [partnerData, products] = await Promise.all([api('/partners'), api('/products')]);
@@ -571,10 +592,10 @@ async function showBatchMovementDialog(type) {
   const addRow = () => {
     const row = document.createElement('div');
     row.className = 'wb-batch-row';
-    row.innerHTML = `<select class="series" required ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '请选择商品系列' : '请先选择客户'}</option>${seriesOptions()}</select><select class="product" required disabled><option value="">请先选择商品系列</option></select><input class="quantity" type="number" min="1" value="1" required/><input class="note" placeholder="本行备注（可选）"/><button class="remove" type="button" aria-label="删除本行">×</button>`;
+    row.innerHTML = `<select class="series" ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '全部系列（不筛选）' : '请先选择客户'}</option>${seriesOptions()}</select><select class="product" required ${customer.value ? '' : 'disabled'}><option value="">${customer.value ? '请选择商品' : '请先选择客户'}</option>${customer.value ? productOptions('') : ''}</select><input class="quantity" type="number" min="1" value="1" required/><input class="note" placeholder="本行备注（可选）"/><button class="remove" type="button" aria-label="删除本行">×</button>`;
     const series = row.querySelector('.series'), product = row.querySelector('.product');
     series.addEventListener('change', async () => {
-      if(series.value !== newSeriesOption) { product.disabled = !series.value; product.innerHTML = `<option value="">请选择型号</option>${productOptions(series.value)}`; return; }
+      if(series.value !== newSeriesOption) { product.disabled = !customer.value; product.innerHTML = `<option value="">请选择商品</option>${productOptions(series.value)}`; return; }
       const category = window.prompt('请输入新商品系列名称，例如：新风、配件')?.trim();
       if(!category) { series.value = ''; return; }
       const model = window.prompt(`请输入“${category}”的首个型号`)?.trim();
@@ -740,6 +761,25 @@ function installCustomerProductFilter() {
     }
     apply();
   }).finally(() => { loadingCustomerFilter = false; });
+}
+
+function installProductQuickActions() {
+  const table = document.querySelector('.table-panel table');
+  const head = document.querySelector('.table-panel .table-head');
+  if (!table || !head || table.querySelector('thead th')?.textContent.trim() !== '商品信息') return;
+  createLocalApi()('/products').then(products => {
+    table.querySelectorAll('tbody tr[data-product-id]').forEach(row => {
+      if (row.querySelector('.wb-product-actions')) return;
+      const product = products.find(item => item.id === row.dataset.productId);
+      if (!product) return;
+      const actions = document.createElement('div');
+      actions.className = 'wb-product-actions';
+      actions.innerHTML = '<button class="in" type="button">入库</button><button class="out" type="button">出库</button>';
+      actions.querySelector('.in').addEventListener('click', () => showProductQuickMovement(product, 'in'));
+      actions.querySelector('.out').addEventListener('click', () => showProductQuickMovement(product, 'out'));
+      row.cells[0]?.append(actions);
+    });
+  });
 }
 
 function openCustomerDashboard(customerId) {
@@ -1056,6 +1096,7 @@ function installPageActions() {
   installHomeFlowStats();
   installHomeCustomerList();
   installCustomerProductFilter();
+  installProductQuickActions();
   installMoreFunctionList();
   installCustomerAlerts();
   installCustomerStatistics();

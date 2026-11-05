@@ -1,10 +1,10 @@
 import { createApp, ref, computed, onMounted } from './vendor/vue.js';
-import { createLocalApi } from './local-store.js?v=20261105.22';
-import { installLocalShell } from './local-shell.js?v=20261105.22';
+import { createLocalApi } from './local-store.js?v=20261105.23';
+import { installLocalShell } from './local-shell.js?v=20261105.23';
 
 const api = createLocalApi();
 installLocalShell();
-((options) => createApp({ ...options, template:options.template.replaceAll('&&', '&amp;&amp;').replaceAll('分类', '系列') }))({
+((options) => createApp({ ...options, template:options.template.replaceAll('&&', '&amp;&amp;').replaceAll('分类', '系列').replaceAll('<tr v-for="p in filtered">', '<tr v-for="p in filtered" :data-product-id="p.id">').replaceAll('<label>商品系列<select v-model="form.series" @change="syncMoveSeries" required :disabled="!form.customerId"><option value="" disabled>{{form.customerId?\'请选择商品系列\':\'请先选择客户\'}}</option>', '<label>商品系列（可选）<select v-model="form.series" @change="syncMoveSeries" :disabled="!form.customerId"><option value="">{{form.customerId?\'全部系列（不筛选）\':\'请先选择客户\'}}</option>').replaceAll('<label>型号<select v-model="form.productId" required :disabled="!form.series"><option value="" disabled>{{form.series?\'请选择该系列型号\':\'请先选择商品系列\'}}</option>', '<label>型号<select v-model="form.productId" required :disabled="!form.customerId"><option value="" disabled>{{form.customerId?\'请选择商品\':\'请先选择客户\'}}</option>') }))({
   setup(){
     const page=ref('dashboard'), overview=ref({lowStock:[],recent:[]}), products=ref([]), movements=ref([]), partners=ref({suppliers:[],customers:[]});
     const query=ref(''), dialog=ref(null), confirming=ref(false), discarding=ref(false), importCandidate=ref(null), importCustomerId=ref(''), clearCandidate=ref(false), busy=ref(false), toast=ref(''), backupInput=ref(null);
