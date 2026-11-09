@@ -93,8 +93,14 @@ function movementsFor(product, movements) {
 export function createMonthlyReport(data, options = {}) {
   const products = [...(data.products || [])].sort((left, right) => `${left.category || ''}\u0000${left.sku || ''}`.localeCompare(`${right.category || ''}\u0000${right.sku || ''}`, 'zh-CN'));
   const movements = data.movements || [];
+  const customers = data.customers || [];
+  const customerName = String(options.customerName || (customers.length === 1 && customers[0]?.name) || (customers.length > 1 ? '全部客户' : '未指定客户')).trim() || '未指定客户';
   const now = options.reportDate ? new Date(options.reportDate) : new Date();
   const year = now.getFullYear(), month = now.getMonth() + 1;
+  const formatDate = value => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`; };
+  const periodStart = options.periodStart == null ? `${year}.${month}.1` : formatDate(options.periodStart);
+  const periodEnd = options.periodEnd == null ? `${year}.${month}.${new Date(year, month, 0).getDate()}` : formatDate(options.periodEnd);
+  const creatorName = String(options.creatorName || '张丹阳').trim() || '张丹阳';
   const ws = {};
   const border = { top:{style:'thin',color:{rgb:'95A5A6'}}, bottom:{style:'thin',color:{rgb:'95A5A6'}}, left:{style:'thin',color:{rgb:'95A5A6'}}, right:{style:'thin',color:{rgb:'95A5A6'}} };
   const titleStyle = { font:{bold:true,sz:16,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'155A65'}}, alignment:{horizontal:'center',vertical:'center'} };
@@ -105,7 +111,8 @@ export function createMonthlyReport(data, options = {}) {
   const noteStyle = { ...bodyStyle, font:{color:{rgb:'52656D'}}, alignment:{vertical:'center',wrapText:true} };
   const subtotalStyle = { font:{bold:true,color:{rgb:'174A53'}}, fill:{fgColor:{rgb:'DDEEEF'}}, alignment:{vertical:'center'}, border };
   const totalStyle = { font:{bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'2A6974'}}, alignment:{vertical:'center'}, border:{...border,bottom:{style:'double',color:{rgb:'174A53'}}} };
-  Object.assign(ws, cell('A1', `赢之诺${year}年${month}月报表`, titleStyle), cell('A2', `单位：件                            ${year}.${month}.1—${year}.${month}.${new Date(year, month, 0).getDate()}`, subtitleStyle));
+  const reportTitle = options.periodStart == null || options.periodEnd == null ? `${customerName}${year}年${month}月报表` : `${customerName}${periodStart}—${periodEnd}出入库流水报表`;
+  Object.assign(ws, cell('A1', reportTitle, titleStyle), cell('A2', `单位：件                            ${periodStart}—${periodEnd}`, subtitleStyle));
   TEMPLATE_HEADERS.forEach((header, index) => Object.assign(ws, cell(`${col(index)}3`, header, headerStyle)));
   ws['!merges'] = [XLSX.utils.decode_range('A1:H1'), XLSX.utils.decode_range('A2:H2')];
   ws['!cols'] = [{wch:12}, {wch:22}, {wch:14}, {wch:10}, {wch:10}, {wch:10}, {wch:10}, {wch:22}];
@@ -141,7 +148,7 @@ export function createMonthlyReport(data, options = {}) {
   Object.assign(ws, cell(`A${row}`, '合计', totalStyle), cell(`D${row}`, 0, totalStyle), cell(`E${row}`, 0, totalStyle), cell(`F${row}`, 0, totalStyle), cell(`G${row}`, 0, totalStyle));
   ['D','E','F','G'].forEach(letter => { ws[`${letter}${row}`] = { t:'n', f:subtotalRows.length ? subtotalRows.map(item => `${letter}${item}`).join('+') : '0', s:totalStyle }; });
   ws['!merges'].push(XLSX.utils.decode_range(`A${row}:C${row}`));
-  Object.assign(ws, cell(`A${row + 1}`, `上期结存：${products.reduce((sum, product) => sum + Number(product.openingStock || 0), 0)}`), cell(`G${row + 1}`, '制表人：WareBoss'), cell(`G${row + 2}`, `日期：${year}.${month}.${new Date(year, month, 0).getDate()}`));
+  Object.assign(ws, cell(`A${row + 1}`, `上期结存：${products.reduce((sum, product) => sum + Number(product.openingStock || 0), 0)}`), cell(`G${row + 1}`, `制作人：${creatorName}`), cell(`G${row + 2}`, `日期：${periodEnd}`));
   const noteRow = options.snapshotNote ? row + 3 : row + 2;
   if (options.snapshotNote) Object.assign(ws, cell(`A${noteRow}`, `报表备注：${String(options.snapshotNote).slice(0, 120)}`));
   ws['!ref'] = `A1:H${noteRow}`;
